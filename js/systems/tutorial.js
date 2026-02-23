@@ -40,7 +40,7 @@ export function resetTutorialFlag() {
 }
 
 function hideScreensForTutorial() {
-  ['startScreen','gameOverScreen','levelClearScreen','levelSelectScreen','pauseScreen'].forEach(id => {
+  ['startScreen', 'gameOverScreen', 'levelClearScreen', 'levelSelectScreen', 'pauseScreen'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.add('hidden');
   });
@@ -48,6 +48,16 @@ function hideScreensForTutorial() {
   if (bs) bs.classList.add('hidden');
   game.paused = false;
   document.getElementById('gameContainer').classList.remove('hidden');
+}
+
+function hideHUD() {
+  document.getElementById('ui-overlay').style.display = 'none';
+  document.getElementById('bounceControl').style.display = 'none';
+}
+
+function restoreHUD() {
+  document.getElementById('ui-overlay').style.display = '';
+  document.getElementById('bounceControl').style.display = '';
 }
 
 export function startTutorial() {
@@ -66,6 +76,7 @@ export function startTutorial() {
   game.tutorialStepTimer = 0;
   game.tutorialShieldTime = 0;
   hideScreensForTutorial();
+  hideHUD();
   game.running = true;
 }
 
@@ -75,6 +86,7 @@ function advanceStep() {
 }
 
 function startRealGame() {
+  restoreHUD();
   initGameState(1, 0, 10, 3);
   game.bulletDamage = 1;
   game.shieldRegenRate = 15;
@@ -110,7 +122,6 @@ export function updateTutorial(dt) {
   game.tutorialStepTimer += dt;
 
   if (step === 0) {
-    // Check if gun is aiming at any enemy
     for (const e of game.enemies) {
       const angleToEnemy = Math.atan2(e.y - player.y, e.x - player.x);
       if (angleDiff(game.gunAngle, angleToEnemy) < 0.26) {
@@ -119,28 +130,19 @@ export function updateTutorial(dt) {
       }
     }
   } else if (step === 1) {
-    if (game.killedEnemies >= 1) {
-      advanceStep();
-    }
+    if (game.killedEnemies >= 1) advanceStep();
   } else if (step === 2) {
     if (game.killedEnemies >= 2) {
-      // Activate the shooting enemy
       for (const e of game.enemies) {
         if (e.canShoot) e.shootTimer = 2;
       }
       advanceStep();
     }
   } else if (step === 3) {
-    if (game.shieldActive) {
-      game.tutorialShieldTime += dt;
-    }
-    if (game.tutorialShieldTime >= 1.0) {
-      advanceStep();
-    }
+    if (game.shieldActive) game.tutorialShieldTime += dt;
+    if (game.tutorialShieldTime >= 1.0) advanceStep();
   } else if (step === 4) {
-    if (game.tutorialStepTimer >= 1.5) {
-      completeTutorial();
-    }
+    if (game.tutorialStepTimer >= 1.5) completeTutorial();
   }
 }
 
@@ -151,52 +153,13 @@ export function drawTutorialOverlay() {
 
   ctx.save();
 
-  // Top bar background
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-  ctx.fillRect(0, 0, W, 44);
-  ctx.fillStyle = '#00ff8833';
-  ctx.fillRect(0, 43, W, 1);
-
-  // Title + text
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = '12px "Press Start 2P"';
-  ctx.fillStyle = '#00ff88';
-  ctx.shadowColor = '#00ff88';
-  ctx.shadowBlur = 8;
-  ctx.fillText(info.text, W / 2, 22);
-  ctx.shadowBlur = 0;
-
-  // Progress dots
-  const dotY = 38;
-  const dotSpacing = 14;
-  const startX = W / 2 - (STEPS.length - 1) * dotSpacing / 2;
-  for (let i = 0; i < STEPS.length; i++) {
-    const dx = startX + i * dotSpacing;
-    ctx.beginPath();
-    ctx.arc(dx, dotY, 3, 0, Math.PI * 2);
-    if (i < step) {
-      ctx.fillStyle = '#00ff88';
-      ctx.fill();
-    } else if (i === step) {
-      ctx.fillStyle = '#00ff88';
-      ctx.fill();
-      // Pulse current dot
-      ctx.beginPath();
-      ctx.arc(dx, dotY, 3 + Math.sin(Date.now() / 300) * 1.5, 0, Math.PI * 2);
-      ctx.strokeStyle = '#00ff8888';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    } else {
-      ctx.strokeStyle = '#335544';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
+  // Step 4: fade everything out
+  if (step === 4) {
+    ctx.globalAlpha = Math.max(0, 1 - game.tutorialStepTimer / 1.5);
   }
 
-  // Step-specific visuals
+  // === In-game visual hints (arrows, shield pulse) ===
   if (step === 0) {
-    // Draw arrow pointing to nearest enemy
     let nearest = null;
     let nearDist = Infinity;
     for (const e of game.enemies) {
@@ -218,7 +181,6 @@ export function drawTutorialOverlay() {
       ctx.lineTo(ax, ay);
       ctx.stroke();
       ctx.setLineDash([]);
-      // Arrowhead
       ctx.fillStyle = '#00ff88';
       ctx.beginPath();
       ctx.moveTo(ax + Math.cos(a) * 8, ay + Math.sin(a) * 8);
@@ -229,7 +191,6 @@ export function drawTutorialOverlay() {
       ctx.globalAlpha = 1;
     }
   } else if (step === 3) {
-    // Pulse shield area hint
     const pulse = 0.15 + Math.sin(Date.now() / 400) * 0.1;
     ctx.globalAlpha = pulse;
     ctx.strokeStyle = '#00ccff';
@@ -239,23 +200,69 @@ export function drawTutorialOverlay() {
     ctx.arc(player.x, player.y, 40, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.globalAlpha = 1;
-  } else if (step === 4) {
-    // Fade out effect
-    const alpha = Math.max(0, 1 - game.tutorialStepTimer / 1.5);
-    ctx.globalAlpha = alpha;
+    ctx.globalAlpha = step === 4 ? Math.max(0, 1 - game.tutorialStepTimer / 1.5) : 1;
   }
 
-  // Bottom skip hint
+  // === Bottom floating panel ===
+  const px = 70, py = 340, pw = 500, ph = 90;
+
+  // Panel background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.82)';
+  ctx.fillRect(px, py, pw, ph);
+  // Border
+  ctx.strokeStyle = '#00ff8844';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1);
+  // Top highlight line
+  ctx.fillStyle = '#00ff8833';
+  ctx.fillRect(px + 1, py, pw - 2, 1);
+
+  // Step title: "▸ 步骤 1/5  瞄准"
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '9px "Press Start 2P"';
+  ctx.fillStyle = '#557755';
+  ctx.fillText('\u25B8 \u6B65\u9AA4 ' + (step + 1) + '/' + STEPS.length + '  ' + info.title, W / 2, py + 20);
+
+  // Main instruction text
+  ctx.font = '14px "Press Start 2P"';
+  ctx.fillStyle = '#00ff88';
+  ctx.shadowColor = '#00ff88';
+  ctx.shadowBlur = 10;
+  ctx.fillText(info.text, W / 2, py + 48);
+  ctx.shadowBlur = 0;
+
+  // Progress dots
+  const dotY = py + 74;
+  const dotSpacing = 16;
+  const dotStartX = W / 2 - (STEPS.length - 1) * dotSpacing / 2;
+  for (let i = 0; i < STEPS.length; i++) {
+    const dx = dotStartX + i * dotSpacing;
+    ctx.beginPath();
+    ctx.arc(dx, dotY, 4, 0, Math.PI * 2);
+    if (i < step) {
+      ctx.fillStyle = '#00ff88';
+      ctx.fill();
+    } else if (i === step) {
+      ctx.fillStyle = '#00ff88';
+      ctx.fill();
+      // Pulse ring on current dot
+      ctx.beginPath();
+      ctx.arc(dx, dotY, 4 + Math.sin(Date.now() / 300) * 2, 0, Math.PI * 2);
+      ctx.strokeStyle = '#00ff8888';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = '#223322';
+      ctx.fill();
+    }
+  }
+
+  // Skip hint below panel
   if (step < 4) {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-    ctx.fillRect(0, H - 20, W, 20);
-    ctx.textAlign = 'center';
-    ctx.font = '7px "Press Start 2P"';
-    ctx.fillStyle = '#335544';
-    ctx.globalAlpha = 0.8;
-    ctx.fillText('ESC 跳过教程', W / 2, H - 9);
-    ctx.globalAlpha = 1;
+    ctx.font = '8px "Press Start 2P"';
+    ctx.fillStyle = '#446644';
+    ctx.fillText('ESC \u8DF3\u8FC7\u6559\u7A0B', W / 2, py + ph + 18);
   }
 
   ctx.restore();

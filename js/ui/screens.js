@@ -7,6 +7,7 @@ import { getUnlockedLevel, unlockLevel } from './levelUnlock.js';
 import { showUpgradePanel } from '../systems/upgrades.js';
 import { getCustomLevels } from '../editor/editorStorage.js';
 import { isTutorialDone, startTutorial } from '../systems/tutorial.js';
+import { showIntroIfNeeded } from './introScreen.js';
 
 /** Resolve level data: builtin by number, or custom data object */
 function getLevelData(lvl) {
@@ -14,7 +15,7 @@ function getLevelData(lvl) {
   return BUILTIN_LEVELS[lvl - 1] || BUILTIN_LEVELS[0];
 }
 
-export function hideAllScreens(){document.getElementById('startScreen').classList.add('hidden');document.getElementById('gameOverScreen').classList.add('hidden');document.getElementById('levelClearScreen').classList.add('hidden');document.getElementById('levelSelectScreen').classList.add('hidden');document.getElementById('bestiaryScreen').classList.add('hidden');document.getElementById('pauseScreen').classList.add('hidden');game.paused=false;document.getElementById('gameContainer').classList.remove('hidden');}
+export function hideAllScreens(){document.getElementById('startScreen').classList.add('hidden');document.getElementById('gameOverScreen').classList.add('hidden');document.getElementById('levelClearScreen').classList.add('hidden');document.getElementById('levelSelectScreen').classList.add('hidden');document.getElementById('bestiaryScreen').classList.add('hidden');document.getElementById('pauseScreen').classList.add('hidden');document.getElementById('introScreen').classList.add('hidden');game.paused=false;document.getElementById('gameContainer').classList.remove('hidden');}
 
 export function showMainMenu(){game.running=false;hideAllScreens();document.getElementById('gameContainer').classList.add('hidden');document.getElementById('startScreen').classList.remove('hidden');initStartDemo();}
 
@@ -22,18 +23,18 @@ export function showGameOver(reason){game.running=false;saveHighScore();document
 
 export function showLevelClear(){game.running=false;if(game.isPlayTest){document.getElementById('levelScore').textContent='\u8BD5\u73A9\u901A\u8FC7!';document.getElementById('upgradePanel').innerHTML='<button class="start-btn" id="playTestBackBtn" style="border-color:#aa44ff;color:#aa44ff;">\u8FD4\u56DE\u7F16\u8F91\u5668</button>';document.getElementById('levelClearScreen').classList.remove('hidden');document.getElementById('playTestBackBtn').addEventListener('click',()=>{const{returnToEditor}=window.__editorBridge||{};if(returnToEditor)returnToEditor();});return;}saveHighScore();unlockLevel(game.level+1);saveGameProgress();document.getElementById('levelScore').textContent=`\u5F97\u5206: ${game.score} | \u5269\u4F59\u5F39\u836F: ${game.shots}`;document.getElementById('upgradePanel').innerHTML='';document.getElementById('levelClearScreen').classList.remove('hidden');requestAnimationFrame(()=>showUpgradePanel());}
 
-export function startGame(){if(!isTutorialDone()){startTutorial();return;}initGameState(1,0,10,game.playerMaxHp);game.bulletDamage=1;game.shieldRegenRate=15;game.playerMaxHp=3;game.playerHp=3;loadLevelData(getLevelData(1));hideAllScreens();game.running=true;}
+export function startGame(){if(!isTutorialDone()){startTutorial();return;}initGameState(1,0,10,game.playerMaxHp);game.bulletDamage=1;game.shieldRegenRate=15;game.playerMaxHp=3;game.playerHp=3;const data=getLevelData(1);loadLevelData(data);hideAllScreens();showIntroIfNeeded(data,()=>{game.running=true;});}
 
-export function continueGame(){const save=loadGameProgress();if(!save)return;game.playerMaxHp=save.playerMaxHp||3;initGameState(save.level,save.score,save.shots,save.playerHp||game.playerMaxHp);game.piercingCount=save.piercingCount||0;game.bulletDamage=save.bulletDamage||1;game.shieldRegenRate=save.shieldRegenRate||15;loadLevelData(getLevelData(save.level));game.shots=save.shots;hideAllScreens();game.running=true;}
+export function continueGame(){const save=loadGameProgress();if(!save)return;game.playerMaxHp=save.playerMaxHp||3;initGameState(save.level,save.score,save.shots,save.playerHp||game.playerMaxHp);game.piercingCount=save.piercingCount||0;game.bulletDamage=save.bulletDamage||1;game.shieldRegenRate=save.shieldRegenRate||15;const data=getLevelData(save.level);loadLevelData(data);game.shots=save.shots;hideAllScreens();showIntroIfNeeded(data,()=>{game.running=true;});}
 
-export function startFromLevel(lvl){initGameState(lvl,0,10+(lvl-1)*5,game.playerMaxHp);game.bulletDamage=1;game.shieldRegenRate=15;loadLevelData(getLevelData(lvl));game.shots=10+(lvl-1)*5;hideAllScreens();game.running=true;}
+export function startFromLevel(lvl){initGameState(lvl,0,10+(lvl-1)*5,game.playerMaxHp);game.bulletDamage=1;game.shieldRegenRate=15;const data=getLevelData(lvl);loadLevelData(data);game.shots=10+(lvl-1)*5;hideAllScreens();showIntroIfNeeded(data,()=>{game.running=true;});}
 
-export function retryLevel(){const shots=10+(game.level-1)*5;initGameState(game.level,game.score,shots,game.playerMaxHp);loadLevelData(getLevelData(game.level));game.shots=shots;hideAllScreens();game.running=true;}
+export function retryLevel(){const shots=10+(game.level-1)*5;initGameState(game.level,game.score,shots,game.playerMaxHp);const data=getLevelData(game.level);loadLevelData(data);game.shots=shots;hideAllScreens();showIntroIfNeeded(data,()=>{game.running=true;});}
 
-export function nextLevel(){const savedShots=game.shots+5;game.level++;game.playerAlive=true;game.shieldActive=false;game.shieldEnergy=game.shieldMaxEnergy;game.shieldCooldown=false;player.invincibleTimer=1;loadLevelData(getLevelData(game.level));game.shots=savedShots;document.getElementById('levelClearScreen').classList.add('hidden');game.running=true;}
+export function nextLevel(){const savedShots=game.shots+5;game.level++;game.playerAlive=true;game.shieldActive=false;game.shieldEnergy=game.shieldMaxEnergy;game.shieldCooldown=false;player.invincibleTimer=1;const data=getLevelData(game.level);loadLevelData(data);game.shots=savedShots;document.getElementById('levelClearScreen').classList.add('hidden');showIntroIfNeeded(data,()=>{game.running=true;});}
 
 /** Start a custom level (from editor play-test or custom level select) */
-export function startCustomLevel(levelData){initGameState(1,0,levelData.shots||10,game.playerMaxHp);game.bulletDamage=1;game.shieldRegenRate=15;game.playerMaxHp=3;game.playerHp=3;game.isPlayTest=true;game.customLevelData=levelData;loadLevelData(levelData);game.shots=levelData.shots||10;hideAllScreens();game.running=true;}
+export function startCustomLevel(levelData){initGameState(1,0,levelData.shots||10,game.playerMaxHp);game.bulletDamage=1;game.shieldRegenRate=15;game.playerMaxHp=3;game.playerHp=3;game.isPlayTest=true;game.customLevelData=levelData;loadLevelData(levelData);game.shots=levelData.shots||10;hideAllScreens();showIntroIfNeeded(levelData,()=>{game.running=true;});}
 
 export function buildLevelGrid(){const grid=document.getElementById('levelGrid');grid.innerHTML='';const unlocked=getUnlockedLevel();for(let i=1;i<=MAX_LEVEL;i++){const btn=document.createElement('button');btn.className='level-btn';btn.textContent=i;if(i>unlocked){btn.classList.add('locked');btn.textContent='?';}else if(i<unlocked)btn.classList.add('cleared');if(i<=unlocked){const level=i;btn.addEventListener('click',function(){startFromLevel(level);});}grid.appendChild(btn);}
 // Custom levels section

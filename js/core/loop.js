@@ -129,9 +129,8 @@ export function gameLoop(timestamp) {
     ctx.globalAlpha = 1;
   }
 
-  if (game.tutorialActive) drawTutorialOverlay();
-
   ctx.restore();
+  if (game.tutorialActive) drawTutorialOverlay();
   updateUI();
   requestAnimationFrame(gameLoop);
 }

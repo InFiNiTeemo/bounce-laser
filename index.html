@@ -256,6 +256,28 @@
   .back-menu-btn { font-family: 'Press Start 2P', monospace; font-size: 9px; padding: 8px 20px; background: transparent; border: 1px solid #335544; color: #557755; cursor: pointer; transition: all 0.2s; pointer-events: all; position: relative; z-index: 2; }
   .back-menu-btn:hover { border-color: #00ff88; color: #00ff88; }
 
+  /* Intro Screen */
+  #introScreen {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    background: rgba(5, 5, 15, 0.92); z-index: 20;
+    color: #00ff88; text-align: center; gap: 14px;
+  }
+  .intro-title { font-size: 18px; color: #ffdd44; text-shadow: 0 0 20px rgba(255,221,68,0.5); letter-spacing: 6px; }
+  .intro-subtitle { font-size: 9px; color: #aa8844; letter-spacing: 10px; margin-bottom: 8px; }
+  .intro-cards { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; max-width: 560px; }
+  .intro-card {
+    background: rgba(0,0,0,0.7); border: 2px solid #334433; padding: 12px 10px 10px;
+    width: 120px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+    font-family: 'Press Start 2P', monospace;
+    opacity: 0; transform: translateY(15px); animation: fadeInUp 0.4s ease forwards;
+  }
+  .intro-card canvas { border: 1px solid #1a2a1e; image-rendering: pixelated; }
+  .intro-card-name { font-size: 9px; text-shadow: 0 0 8px currentColor; }
+  .intro-card-name-en { font-size: 6px; opacity: 0.6; }
+  .intro-card-desc { font-size: 6px; color: #668866; line-height: 1.8; }
+  .intro-hint { font-size: 7px; color: #557755; animation: pulse 2s ease-in-out infinite; margin-top: 8px; }
+
   /* Pause Screen */
   #pauseScreen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(5, 5, 15, 0.92); z-index: 20; color: #00ff88; text-align: center; gap: 16px; }
   .pause-title { font-size: 20px; color: #00ff88; text-shadow: 0 0 20px #00ff88; }
@@ -507,6 +529,9 @@
     <div id="upgradePanel"></div>
     <div class="start-hint">按 1 / 2 / 3 快速选择</div>
   </div>
+
+  <!-- Intro Screen (new element introduction) -->
+  <div id="introScreen" class="hidden"></div>
 
   <!-- Pause Screen -->
   <div id="pauseScreen" class="hidden">
