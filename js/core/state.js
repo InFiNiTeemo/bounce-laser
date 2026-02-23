@@ -37,6 +37,14 @@ export const game = {
   walls: [],
   apples: [],
   paused: false,
+  isPlayTest: false,
+  customLevelData: null,
+  editorActive: false,
+  editorReturnData: null,
+  tutorialActive: false,
+  tutorialStep: 0,
+  tutorialStepTimer: 0,
+  tutorialShieldTime: 0,
 };
 
 export const player = {

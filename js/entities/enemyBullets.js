@@ -13,5 +13,5 @@ ctx.shadowColor='#aa44ff';ctx.shadowBlur=10;drawPixelCircle(eb.x,eb.y,5,'#6622cc
 }else if(eb.bulletType==='sniper'){
 const a=Math.atan2(eb.vy,eb.vx);ctx.save();ctx.translate(eb.x,eb.y);ctx.rotate(a);ctx.shadowColor='#ffcc00';ctx.shadowBlur=8;ctx.fillStyle='#ffcc00';ctx.fillRect(-6,-1.5,12,3);ctx.fillStyle='#ffffff';ctx.fillRect(-3,-1,6,2);ctx.shadowBlur=0;ctx.restore();
 }else{
-ctx.shadowColor=COLORS.enemyBullet;ctx.shadowBlur=8;drawPixelCircle(eb.x,eb.y,3,COLORS.enemyBullet);drawPixelCircle(eb.x,eb.y,1.5,'#ffffff');ctx.shadowBlur=0;
+ctx.shadowColor=COLORS.enemyBullet;ctx.shadowBlur=10;drawPixelCircle(eb.x,eb.y,5,COLORS.enemyBullet);drawPixelCircle(eb.x,eb.y,2.5,'#ffffff');ctx.shadowBlur=0;
 }}

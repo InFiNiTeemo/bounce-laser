@@ -17,6 +17,10 @@ export function initCanvas() {
   demoCtx = demoCanvas.getContext('2d');
 }
 
+/** Temporarily swap the 2D context (used by editor) */
+export function setCtx(newCtx) { ctx = newCtx; }
+export function getCtx() { return ctx; }
+
 export function drawPixelRect(x, y, w, h, color) {
   ctx.fillStyle = color;
   for (let i = 0; i < w; i += PX) {

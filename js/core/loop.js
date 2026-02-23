@@ -17,12 +17,19 @@ import { updateBarrels, drawBarrel } from '../objects/barrels.js';
 import { updateApples, drawApple } from '../objects/apples.js';
 import { updateStartDemo, drawStartDemo } from '../ui/startDemo.js';
 import { showGameOver, showLevelClear, updateUI } from '../ui/screens.js';
+import { updateTutorial, drawTutorialOverlay } from '../systems/tutorial.js';
 
 let lastTime = 0;
 
 export function gameLoop(timestamp) {
   const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
   lastTime = timestamp;
+
+  // Skip game loop when editor is active
+  if (game.editorActive) {
+    requestAnimationFrame(gameLoop);
+    return;
+  }
 
   if (!game.running && !game.paused) {
     updateStartDemo(dt);
@@ -74,11 +81,15 @@ export function gameLoop(timestamp) {
       game.screenShake -= dt;
     }
 
-    if (game.enemies.length === 0 && game.playerAlive) {
+    if (game.tutorialActive) {
+      updateTutorial(dt);
+    }
+
+    if (game.enemies.length === 0 && game.playerAlive && !game.tutorialActive) {
       showLevelClear();
     }
 
-    if (game.shots <= 0 && game.bullets.length === 0 && game.enemies.length > 0 && game.playerAlive) {
+    if (game.shots <= 0 && game.bullets.length === 0 && game.enemies.length > 0 && game.playerAlive && !game.tutorialActive) {
       showGameOver('\u5F39\u836F\u8017\u5C3D!');
     }
   }
@@ -117,6 +128,8 @@ export function gameLoop(timestamp) {
     ctx.fillText('\u5F39\u836F\u4E0D\u8DB3!', W / 2, H - 30);
     ctx.globalAlpha = 1;
   }
+
+  if (game.tutorialActive) drawTutorialOverlay();
 
   ctx.restore();
   updateUI();
