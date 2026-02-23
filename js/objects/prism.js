@@ -2,7 +2,7 @@
  * prism.js - Prism collision math, spawning, splitting, rendering, and pickups.
  */
 import { ctx, drawPixelRect, drawPixelCircle } from '../core/render.js';
-import { W, H, PRISM_COLORS, PRISM_MIN_LEVEL, MAX_BULLETS } from '../core/constants.js';
+import { W, H, PRISM_COLORS, PRISM_MIN_LEVEL, MAX_BULLETS, PRISM_UNIT_W } from '../core/constants.js';
 import { game, player } from '../core/state.js';
 import { spawnParticles } from '../systems/particles.js';
 
@@ -114,7 +114,7 @@ export function splitBulletAtPrism(bullet, prism) {
   const speed = Math.hypot(bullet.vx, bullet.vy);
   const baseAngle = Math.atan2(ref.vy, ref.vx);
   const spread = Math.PI / 8;
-  const sc = prism.splitCount;
+  const sc = prism.splitCount + game.prismSplitBonus;
   const nb = [];
   for (let i = 0; i < sc; i++) {
     let a;
@@ -129,10 +129,12 @@ export function splitBulletAtPrism(bullet, prism) {
       maxBounces: bullet.maxBounces,
       life: Math.min(bullet.life, 200),
       trail: [],
-      piercing: bullet.piercing || false,
+      piercing: bullet.piercing || game.prismPiercing,
       piercingUsed: bullet.piercingUsed || false,
       fromPrism: true,
-      lastPortal: null
+      lastPortal: null,
+      portalGrace: 0,
+      crit: bullet.crit || false
     });
   }
   return nb;
@@ -196,6 +198,7 @@ export function drawPrism(p) {
   const hw = p.w / 2;
   const hh = p.h / 2;
   const gi = 0.5 + Math.sin(p.glowPhase) * 0.3;
+  const segments = p.segments || 1;
   if (p.flashTimer > 0) {
     ctx.shadowColor = '#ffffff';
     ctx.shadowBlur = 20;
@@ -207,17 +210,43 @@ export function drawPrism(p) {
   const isD = p.type === 'destructible';
   ctx.shadowColor = isD ? PRISM_COLORS.destructible : PRISM_COLORS.glow;
   ctx.shadowBlur = 8 + gi * 6;
+  // Layer 1: dark outer body (one continuous rect)
   drawPixelRect(-hw, -hh, p.w, p.h, isD ? PRISM_COLORS.destructibleDark : PRISM_COLORS.bodyDark);
+  // Layer 2: bright inner body (one continuous rect, inset 2px)
   drawPixelRect(-hw + 2, -hh + 2, p.w - 4, p.h - 4, isD ? PRISM_COLORS.destructible : PRISM_COLORS.body);
+  // Layer 3: end cap highlights (multi-segment only)
+  if (segments > 1) {
+    const capW = 4;
+    const capColor = isD
+      ? `rgba(255,180,220,${0.25 + gi * 0.15})`
+      : `rgba(200,140,255,${0.25 + gi * 0.15})`;
+    ctx.fillStyle = capColor;
+    ctx.fillRect(Math.floor(-hw + 2), Math.floor(-hh + 2), capW, p.h - 4);
+    ctx.fillRect(Math.floor(hw - 2 - capW), Math.floor(-hh + 2), capW, p.h - 4);
+  }
+  // Layer 4: segment divider lines (multi-segment only)
+  if (segments > 1) {
+    const divColor = isD
+      ? `rgba(170,68,136,${0.3 + gi * 0.2})`
+      : `rgba(102,34,170,${0.3 + gi * 0.2})`;
+    ctx.fillStyle = divColor;
+    for (let i = 1; i < segments; i++) {
+      const dx = -hw + i * PRISM_UNIT_W;
+      ctx.fillRect(Math.floor(dx), Math.floor(-hh + 3), 1, p.h - 6);
+    }
+  }
+  // Layer 5: center white stripe (continuous)
   ctx.fillStyle = `rgba(255,255,255,${0.3 + gi * 0.2})`;
   ctx.fillRect(Math.floor(-hw + 4), Math.floor(-1), p.w - 8, 2);
   ctx.shadowBlur = 0;
+  // Health bar (destructible)
   if (isD && p.maxHp > 0) {
     const bw = p.w - 4;
     const ratio = p.hp / p.maxHp;
     drawPixelRect(-bw / 2, -hh - 6, bw, 3, '#330033');
     drawPixelRect(-bw / 2, -hh - 6, bw * ratio, 3, PRISM_COLORS.destructible);
   }
+  // Rotating indicators
   if (p.type === 'rotating') {
     ctx.fillStyle = `rgba(200,100,255,${0.4 + gi * 0.3})`;
     ctx.fillRect(Math.floor(hw + 2), -2, 3, 3);

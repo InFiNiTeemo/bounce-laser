@@ -40,10 +40,12 @@ export function explodeBarrel(barrel) {
   spawnParticles(bx, by, '#ffcc44', 12);
   spawnParticles(bx, by, '#ffffff', 6);
   game.screenShake = Math.max(game.screenShake, 0.4);
+  const effectiveRadius = BARREL_EXPLOSION_RADIUS * game.explosionRadiusMult;
   for (let i = game.enemies.length - 1; i >= 0; i--) {
     const e = game.enemies[i];
-    if (Math.hypot(bx - e.x, by - e.y) < BARREL_EXPLOSION_RADIUS) {
-      e.hp -= 2;
+    if (e.type === 'ghost' && !e.visible) continue;
+    if (Math.hypot(bx - e.x, by - e.y) < effectiveRadius) {
+      e.hp -= (2 + game.explosionDmgBonus);
       e.flashTimer = 0.15;
       spawnParticles(e.x, e.y, COLORS.enemy, 8);
       if (e.hp <= 0) {
@@ -56,13 +58,13 @@ export function explodeBarrel(barrel) {
   }
   for (let i = game.barrels.length - 1; i >= 0; i--) {
     const other = game.barrels[i];
-    if (!other.exploded && Math.hypot(bx - other.x, by - other.y) < BARREL_EXPLOSION_RADIUS) {
+    if (!other.exploded && Math.hypot(bx - other.x, by - other.y) < effectiveRadius) {
       explodeBarrel(other);
     }
   }
   for (let i = game.enemyBullets.length - 1; i >= 0; i--) {
     const eb = game.enemyBullets[i];
-    if (Math.hypot(bx - eb.x, by - eb.y) < BARREL_EXPLOSION_RADIUS) {
+    if (Math.hypot(bx - eb.x, by - eb.y) < effectiveRadius) {
       spawnParticles(eb.x, eb.y, COLORS.warning, 4);
       game.enemyBullets.splice(i, 1);
     }
@@ -79,7 +81,7 @@ export function updateBarrels(dt) {
 export function drawBarrel(barrel) {
   const bx = barrel.x;
   const by = barrel.y;
-  const r = barrel.size;
+  const r = barrel.size * 1.5;
   const pulse = 0.5 + 0.5 * Math.sin(barrel.glowPhase);
   ctx.shadowColor = BARREL_COLORS.glow;
   ctx.shadowBlur = 4 + pulse * 6;

@@ -46,6 +46,11 @@ export function exportLevelJSON(levelData) {
   return JSON.stringify(levelData, null, 2);
 }
 
+export function exportAllLevelsJSON() {
+  const levels = getCustomLevels();
+  return JSON.stringify(levels, null, 2);
+}
+
 export function importLevelJSON(jsonStr) {
   try {
     const data = JSON.parse(jsonStr);

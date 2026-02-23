@@ -8,6 +8,7 @@ import { initStartDemo } from './startDemo.js';
 import { showEditorLevelSelect, returnToEditor } from '../editor/editor.js';
 import { showBestiary, hideBestiary } from './bestiary.js';
 import { skipTutorial, resetTutorialFlag, startTutorial } from '../systems/tutorial.js';
+import { showAdminPanel, initAdminPanel } from '../community/admin.js';
 
 export function initInput(){
 canvas.addEventListener('mousemove',e=>{const r=canvas.getBoundingClientRect();game.mouseX=(e.clientX-r.left)*(W/r.width);game.mouseY=(e.clientY-r.top)*(H/r.height);});
@@ -35,6 +36,9 @@ document.getElementById('backBtn').addEventListener('click',function(){document.
 document.getElementById('bestiaryBtn').addEventListener('click',showBestiary);
 document.getElementById('bestiaryBackBtn').addEventListener('click',hideBestiary);
 document.getElementById('replayTutorialBtn').addEventListener('click',()=>{resetTutorialFlag();startTutorial();});
+initAdminPanel();
+document.getElementById('levelGrid').addEventListener('click',e=>{if(e.target.id==='adminEntryBtn')showAdminPanel();});
+document.getElementById('clearCacheBtn').addEventListener('click',()=>{try{localStorage.clear();}catch(e){}location.reload();});
 
 document.getElementById('helpToggle').addEventListener('click',function(){const panel=document.getElementById('helpPanel');panel.classList.toggle('show');this.textContent=panel.classList.contains('show')?'\u64CD\u4F5C\u8BF4\u660E \u25B2':'\u64CD\u4F5C\u8BF4\u660E \u25BC';});
 
@@ -50,5 +54,5 @@ document.addEventListener('keydown',e=>{
   if(game.editorActive)return;
   if(e.code==='Escape'){e.preventDefault();if(game.tutorialActive){skipTutorial();return;}togglePause();return;}if(game.paused)return;if(e.code==='Space'){e.preventDefault();const ss=document.getElementById('startScreen'),go=document.getElementById('gameOverScreen'),ls=document.getElementById('levelSelectScreen'),lc=document.getElementById('levelClearScreen');if(!ls.classList.contains('hidden'))return;if(!lc.classList.contains('hidden'))return;if(!ss.classList.contains('hidden')||!go.classList.contains('hidden'))startGame();}const lc=document.getElementById('levelClearScreen');if(!lc.classList.contains('hidden')){if(e.code==='Digit1'||e.code==='Numpad1')applyUpgrade(0);if(e.code==='Digit2'||e.code==='Numpad2')applyUpgrade(1);if(e.code==='Digit3'||e.code==='Numpad3')applyUpgrade(2);}});
 
-canvas.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('contextmenu',e=>e.preventDefault());
 }

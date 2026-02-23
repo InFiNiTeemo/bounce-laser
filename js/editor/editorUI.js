@@ -1,7 +1,7 @@
 /**
  * editorUI.js - Editor toolbar, property panel, and action button wiring
  */
-import { W, H } from '../core/constants.js';
+import { W, H, PRISM_UNIT_W, PRISM_MAX_SEGMENTS } from '../core/constants.js';
 
 /**
  * Wire up all editor UI controls.
@@ -10,7 +10,7 @@ import { W, H } from '../core/constants.js';
 export function initEditorUI(state, callbacks) {
   const {
     onToolChange, onNew, onSave, onLoad, onPlayTest,
-    onCopyJSON, onPasteJSON, onUndo, onRedo, onBack,
+    onCopyJSON, onPasteJSON, onExportAll, onUndo, onRedo, onBack,
   } = callbacks;
 
   // Tool buttons
@@ -37,6 +37,8 @@ export function initEditorUI(state, callbacks) {
         { value: 'patrol', label: '\u5DE1\u903B' },
         { value: 'tank', label: '\u5766\u514B' },
         { value: 'sniper', label: '\u72D9\u51FB' },
+        { value: 'healer', label: '\u533B\u7597' },
+        { value: 'ghost', label: '\u5E7D\u7075' },
       ];
       types.forEach(t => {
         const btn = document.createElement('button');
@@ -91,6 +93,7 @@ export function initEditorUI(state, callbacks) {
   document.getElementById('editorPlayTest').addEventListener('click', onPlayTest);
   document.getElementById('editorCopyJSON').addEventListener('click', onCopyJSON);
   document.getElementById('editorPasteJSON').addEventListener('click', onPasteJSON);
+  document.getElementById('editorExportAll').addEventListener('click', onExportAll);
   document.getElementById('editorUndo').addEventListener('click', onUndo);
   document.getElementById('editorRedo').addEventListener('click', onRedo);
   document.getElementById('editorBack').addEventListener('click', onBack);
@@ -136,6 +139,7 @@ export function initEditorUI(state, callbacks) {
       const p = ld.prisms[sel.index];
       if (!p) { panel.innerHTML = ''; return; }
       const angleDeg = Math.round((p.angle || 0) * 180 / Math.PI);
+      const seg = p.segments || 1;
       html = `<div class="prop-row"><span>\u68F1\u955C [${p.type}]</span></div>
         <div class="prop-row">
           <label>\u7C7B\u578B: <select class="prop-input" data-field="ptype">
@@ -151,6 +155,14 @@ export function initEditorUI(state, callbacks) {
             <option value="2" ${p.splitCount===2?'selected':''}>2</option>
             <option value="3" ${p.splitCount===3?'selected':''}>3</option>
           </select></label>
+        </div>
+        <div class="prop-row">
+          <label>\u6BB5\u6570: <input type="number" class="prop-input" data-field="segments" value="${seg}" min="1" max="${PRISM_MAX_SEGMENTS}" step="1"></label>
+          <label>\u603B\u5BBD: <span style="color:#66ddaa">${p.w||40}px</span></label>
+        </div>
+        <div class="prop-row">
+          ${seg > 1 ? `<label>\u5BBD: <span style="color:#66ddaa">${p.w||40}</span></label>` : `<label>\u5BBD: <input type="number" class="prop-input" data-field="pw" value="${p.w||40}" min="20" max="200" step="2"></label>`}
+          <label>\u9AD8: <input type="number" class="prop-input" data-field="ph" value="${p.h||12}" min="6" max="60" step="2"></label>
         </div>
         ${p.type==='destructible'?`<div class="prop-row"><label>HP: <input type="number" class="prop-input" data-field="php" value="${p.hp||3}" min="1" max="10"></label></div>`:''}`;
     } else if (sel.kind === 'barrel') {
@@ -196,6 +208,14 @@ export function initEditorUI(state, callbacks) {
       if (field === 'ptype') p.type = input.value;
       if (field === 'angle') p.angle = (parseInt(input.value) || 0) * Math.PI / 180;
       if (field === 'splitCount') p.splitCount = parseInt(input.value) || 2;
+      if (field === 'segments') {
+        const s = Math.max(1, Math.min(PRISM_MAX_SEGMENTS, parseInt(input.value) || 1));
+        p.segments = s;
+        p.w = s * PRISM_UNIT_W;
+        updateProperties(); // refresh to toggle width read-only
+      }
+      if (field === 'pw') p.w = Math.max(20, Math.min(200, parseInt(input.value) || 40));
+      if (field === 'ph') p.h = Math.max(6, Math.min(60, parseInt(input.value) || 12));
       if (field === 'php') p.hp = parseInt(input.value) || 3;
     }
   }

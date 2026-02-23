@@ -1,5 +1,7 @@
 /**
  * tutorial.js - Interactive new player tutorial system
+ * Text rendered via DOM overlay (#tutorialOverlay) for crisp resolution.
+ * Visual effects (arrows, shield circles) drawn on canvas.
  */
 import { ctx } from '../core/render.js';
 import { W, H } from '../core/constants.js';
@@ -8,7 +10,7 @@ import { loadLevelData } from '../levelLoader.js';
 import { BUILTIN_LEVELS } from '../levels.js';
 
 const TUTORIAL_LEVEL = {
-  id: 'tutorial', name: '教程', shots: 99,
+  id: 'tutorial', name: '\u6559\u7A0B', shots: 99,
   enemies: [
     { type: 'basic', hp: 1, canShoot: false, x: 200, y: 150 },
     { type: 'basic', hp: 1, canShoot: false, x: 450, y: 330 },
@@ -18,14 +20,18 @@ const TUTORIAL_LEVEL = {
 };
 
 const STEPS = [
-  { title: '瞄准', text: '移动鼠标 瞄准敌人' },
-  { title: '射击', text: '左键点击 发射激光' },
-  { title: '反弹', text: '子弹碰墙会反弹！消灭更多敌人' },
-  { title: '护盾', text: '按住右键 激活护盾挡住敌弹' },
-  { title: '完成', text: '教程完成！准备开始冒险！' },
+  { title: '\u7784\u51C6', text: '\u79FB\u52A8\u9F20\u6807 \u7784\u51C6\u654C\u4EBA' },
+  { title: '\u5C04\u51FB', text: '\u5DE6\u952E\u70B9\u51FB \u53D1\u5C04\u6FC0\u5149' },
+  { title: '\u53CD\u5F39', text: '\u5C06\u5B50\u5F39\u5F39\u5899\u540E\u51FB\u6740\u654C\u4EBA\uFF01' },
+  { title: '\u62A4\u76FE\u53CD\u5F39', text: '\u6309\u4F4F\u53F3\u952E \u53CD\u5F39\u81EA\u5DF1\u7684\u5B50\u5F39' },
+  { title: '\u62A4\u76FE', text: '\u6309\u4F4F\u53F3\u952E \u6FC0\u6D3B\u62A4\u76FE\u6321\u4F4F\u654C\u5F39' },
+  { title: '\u62B5\u6321', text: '\u7528\u5B50\u5F39\u62B5\u6321\u654C\u4EBA\u7684\u5B50\u5F39' },
+  { title: '\u5B8C\u6210', text: '\u6559\u7A0B\u5B8C\u6210\uFF01\u51C6\u5907\u5F00\u59CB\u5192\u9669\uFF01' },
 ];
 
 const LS_KEY = 'bounceLaser_tutorialDone';
+const TYPEWRITER_SPEED = 0.06;
+const STEP_READY_DELAY = 1.0;
 
 export function isTutorialDone() {
   try { return localStorage.getItem(LS_KEY) === '1'; } catch (e) { return false; }
@@ -60,12 +66,85 @@ function restoreHUD() {
   document.getElementById('bounceControl').style.display = '';
 }
 
+// ---- DOM Tutorial Panel ----
+function initTutorialDots() {
+  const dotsEl = document.getElementById('tutorialDots');
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < STEPS.length; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'tut-dot';
+    dotsEl.appendChild(dot);
+  }
+}
+
+function showTutorialPanel() {
+  const overlay = document.getElementById('tutorialOverlay');
+  overlay.classList.remove('hidden', 'fade-out');
+  initTutorialDots();
+  syncTutorialPanel(0);
+}
+
+function hideTutorialPanel() {
+  document.getElementById('tutorialOverlay').classList.add('hidden');
+}
+
+function syncTutorialPanel(step) {
+  const info = STEPS[step];
+  if (!info) return;
+  document.getElementById('tutorialStepLabel').textContent =
+    '\u25B8 \u6B65\u9AA4 ' + (step + 1) + '/' + STEPS.length + '  ' + info.title;
+  // Update dots
+  const dots = document.getElementById('tutorialDots').children;
+  for (let i = 0; i < dots.length; i++) {
+    dots[i].className = 'tut-dot' +
+      (i < step ? ' done' : i === step ? ' current' : '');
+  }
+  // Skip hint visibility
+  document.getElementById('tutorialSkip').style.display =
+    step >= STEPS.length - 1 ? 'none' : '';
+}
+
+// Typewriter helpers
+function getVisibleText(fullText, elapsed) {
+  const chars = Math.floor(elapsed / TYPEWRITER_SPEED);
+  return fullText.substring(0, Math.min(chars, fullText.length));
+}
+
+/** Check if typewriter finished + delay elapsed */
+function isStepReady(stepIndex, elapsed) {
+  return elapsed >= STEPS[stepIndex].text.length * TYPEWRITER_SPEED + STEP_READY_DELAY;
+}
+
+function updateTypewriterDOM() {
+  const step = game.tutorialStep;
+  const info = STEPS[step];
+  if (!info) return;
+  let text = getVisibleText(info.text, game.tutorialStepTimer);
+  // Show counter for shield defense step (step 4)
+  if (step === 4 && isStepReady(4, game.tutorialStepTimer)) {
+    const sec = Math.min(Math.floor(game.tutorialShieldTime), 1);
+    text += '  (' + sec + '/1)';
+  }
+  // Show counter for bullet counter step (step 5)
+  if (step === 5 && isStepReady(5, game.tutorialStepTimer)) {
+    const count = Math.min(game.tutorialBulletCounters, 3);
+    text += '  (' + count + '/3)';
+  }
+  document.getElementById('tutorialMainText').textContent = text;
+}
+
+// ---- Tutorial lifecycle ----
 export function startTutorial() {
   initGameState(1, 0, 99, 3);
   game.bulletDamage = 1;
   game.shieldRegenRate = 15;
   game.playerMaxHp = 3;
   game.playerHp = 3;
+  game.killedEnemies = 0;
+  game.bounceKills = 0;
+  game.shieldReflectKills = 0;
+  game.tutorialShieldReflects = 0;
+  game.tutorialBulletCounters = 0;
   loadLevelData(TUTORIAL_LEVEL);
   // Make the shooting enemy not shoot yet
   for (const e of game.enemies) {
@@ -77,16 +156,38 @@ export function startTutorial() {
   game.tutorialShieldTime = 0;
   hideScreensForTutorial();
   hideHUD();
+  showTutorialPanel();
   game.running = true;
 }
 
 function advanceStep() {
   game.tutorialStep++;
   game.tutorialStepTimer = 0;
+  syncTutorialPanel(game.tutorialStep);
+  // Fade out on final step
+  if (game.tutorialStep === STEPS.length - 1) {
+    document.getElementById('tutorialOverlay').classList.add('fade-out');
+  }
+}
+
+function spawnTutorialEnemy(canShoot) {
+  let x, y, attempts = 0;
+  do {
+    x = 80 + Math.random() * (W - 160);
+    y = 80 + Math.random() * (H - 160);
+    attempts++;
+  } while (attempts < 50 && Math.hypot(x - player.x, y - player.y) < 120);
+  game.enemies.push({
+    type: 'basic', x, y, size: 12, hp: 1, maxHp: 1,
+    canShoot, shootTimer: canShoot ? (2 + Math.random() * 2) : 999,
+    flashTimer: 0, bobPhase: Math.random() * Math.PI * 2,
+  });
+  game.levelEnemies = game.enemies.length;
 }
 
 function startRealGame() {
   restoreHUD();
+  hideTutorialPanel();
   initGameState(1, 0, 10, 3);
   game.bulletDamage = 1;
   game.shieldRegenRate = 15;
@@ -121,7 +222,11 @@ export function updateTutorial(dt) {
   const step = game.tutorialStep;
   game.tutorialStepTimer += dt;
 
+  // Update typewriter text in DOM each frame
+  updateTypewriterDOM();
+
   if (step === 0) {
+    if (!isStepReady(0, game.tutorialStepTimer)) return;
     for (const e of game.enemies) {
       const angleToEnemy = Math.atan2(e.y - player.y, e.x - player.x);
       if (angleDiff(game.gunAngle, angleToEnemy) < 0.26) {
@@ -130,35 +235,72 @@ export function updateTutorial(dt) {
       }
     }
   } else if (step === 1) {
+    if (!isStepReady(1, game.tutorialStepTimer)) return;
     if (game.killedEnemies >= 1) advanceStep();
   } else if (step === 2) {
-    if (game.killedEnemies >= 2) {
-      for (const e of game.enemies) {
-        if (e.canShoot) e.shootTimer = 2;
-      }
+    if (!isStepReady(2, game.tutorialStepTimer)) return;
+    // Respawn if all killed without bounce kill
+    if (game.enemies.length === 0 && game.bounceKills < 1) {
+      spawnTutorialEnemy(false);
+    }
+    if (game.bounceKills >= 1) {
+      if (game.enemies.length === 0) spawnTutorialEnemy(false);
       advanceStep();
     }
   } else if (step === 3) {
+    if (!isStepReady(3, game.tutorialStepTimer)) return;
+    // Shield reflect: reflect own bullet with shield
+    if (game.enemies.length === 0) spawnTutorialEnemy(false);
+    if (game.tutorialShieldReflects >= 1) {
+      // Set up shooting enemies for shield defense step
+      for (const e of game.enemies) {
+        e.canShoot = true;
+        e.shootTimer = 2 + Math.random() * 2;
+      }
+      if (game.enemies.length < 2) {
+        const need = 2 - game.enemies.length;
+        for (let i = 0; i < need; i++) spawnTutorialEnemy(true);
+      }
+      // Reset shield for defense step
+      game.shieldEnergy = game.shieldMaxEnergy;
+      game.shieldCooldown = false;
+      advanceStep();
+    }
+  } else if (step === 4) {
+    if (!isStepReady(4, game.tutorialStepTimer)) return;
+    // Shield defense: block enemy bullets
+    if (game.enemies.length === 0) {
+      spawnTutorialEnemy(true);
+      spawnTutorialEnemy(true);
+    }
     if (game.shieldActive) game.tutorialShieldTime += dt;
     if (game.tutorialShieldTime >= 1.0) advanceStep();
-  } else if (step === 4) {
+  } else if (step === 5) {
+    if (!isStepReady(5, game.tutorialStepTimer)) return;
+    // Bullet counter: use own bullet to destroy enemy bullet
+    if (game.enemies.length === 0) {
+      spawnTutorialEnemy(true);
+      spawnTutorialEnemy(true);
+    }
+    // Ensure enemies are shooting
+    for (const e of game.enemies) {
+      if (e.canShoot && e.shootTimer > 3) e.shootTimer = 2;
+    }
+    if (game.tutorialBulletCounters >= 3) advanceStep();
+  } else if (step === 6) {
     if (game.tutorialStepTimer >= 1.5) completeTutorial();
   }
 }
 
+// Only draws canvas visual effects (arrows, shield circles).
+// Text panel is rendered via DOM overlay for crisp resolution.
 export function drawTutorialOverlay() {
   const step = game.tutorialStep;
-  const info = STEPS[step];
-  if (!info) return;
+  if (step >= STEPS.length) return;
 
   ctx.save();
 
-  // Step 4: fade everything out
-  if (step === 4) {
-    ctx.globalAlpha = Math.max(0, 1 - game.tutorialStepTimer / 1.5);
-  }
-
-  // === In-game visual hints (arrows, shield pulse) ===
+  // === In-game visual hints ===
   if (step === 0) {
     let nearest = null;
     let nearDist = Infinity;
@@ -190,7 +332,51 @@ export function drawTutorialOverlay() {
       ctx.fill();
       ctx.globalAlpha = 1;
     }
+  } else if (step === 2) {
+    // Bounce trajectory hint: player -> wall -> enemy
+    if (game.enemies.length > 0) {
+      const pulse = 0.3 + Math.sin(Date.now() / 300) * 0.2;
+      ctx.globalAlpha = pulse;
+      ctx.strokeStyle = '#00ffcc';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      const nearest = game.enemies[0];
+      const wallY = 6;
+      const midX = (player.x + nearest.x) / 2;
+      ctx.beginPath();
+      ctx.moveTo(player.x, player.y);
+      ctx.lineTo(midX, wallY);
+      ctx.lineTo(nearest.x, nearest.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+    }
   } else if (step === 3) {
+    // Shield reflect hint: shield circle + outward arrow
+    const pulse = 0.2 + Math.sin(Date.now() / 300) * 0.15;
+    ctx.globalAlpha = pulse;
+    ctx.strokeStyle = '#00ccff';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, 40, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if (game.enemies.length > 0) {
+      const e = game.enemies[0];
+      const a = Math.atan2(e.y - player.y, e.x - player.x);
+      ctx.strokeStyle = '#00ffcc';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(player.x + Math.cos(a) * 44, player.y + Math.sin(a) * 44);
+      ctx.lineTo(player.x + Math.cos(a) * 80, player.y + Math.sin(a) * 80);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    ctx.globalAlpha = 1;
+  } else if (step === 4 || step === 5) {
+    // Shield / bullet counter hint: pulsing shield circle
     const pulse = 0.15 + Math.sin(Date.now() / 400) * 0.1;
     ctx.globalAlpha = pulse;
     ctx.strokeStyle = '#00ccff';
@@ -200,69 +386,7 @@ export function drawTutorialOverlay() {
     ctx.arc(player.x, player.y, 40, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.globalAlpha = step === 4 ? Math.max(0, 1 - game.tutorialStepTimer / 1.5) : 1;
-  }
-
-  // === Bottom floating panel ===
-  const px = 70, py = 340, pw = 500, ph = 90;
-
-  // Panel background
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.82)';
-  ctx.fillRect(px, py, pw, ph);
-  // Border
-  ctx.strokeStyle = '#00ff8844';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1);
-  // Top highlight line
-  ctx.fillStyle = '#00ff8833';
-  ctx.fillRect(px + 1, py, pw - 2, 1);
-
-  // Step title: "▸ 步骤 1/5  瞄准"
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = '9px "Press Start 2P"';
-  ctx.fillStyle = '#557755';
-  ctx.fillText('\u25B8 \u6B65\u9AA4 ' + (step + 1) + '/' + STEPS.length + '  ' + info.title, W / 2, py + 20);
-
-  // Main instruction text
-  ctx.font = '14px "Press Start 2P"';
-  ctx.fillStyle = '#00ff88';
-  ctx.shadowColor = '#00ff88';
-  ctx.shadowBlur = 10;
-  ctx.fillText(info.text, W / 2, py + 48);
-  ctx.shadowBlur = 0;
-
-  // Progress dots
-  const dotY = py + 74;
-  const dotSpacing = 16;
-  const dotStartX = W / 2 - (STEPS.length - 1) * dotSpacing / 2;
-  for (let i = 0; i < STEPS.length; i++) {
-    const dx = dotStartX + i * dotSpacing;
-    ctx.beginPath();
-    ctx.arc(dx, dotY, 4, 0, Math.PI * 2);
-    if (i < step) {
-      ctx.fillStyle = '#00ff88';
-      ctx.fill();
-    } else if (i === step) {
-      ctx.fillStyle = '#00ff88';
-      ctx.fill();
-      // Pulse ring on current dot
-      ctx.beginPath();
-      ctx.arc(dx, dotY, 4 + Math.sin(Date.now() / 300) * 2, 0, Math.PI * 2);
-      ctx.strokeStyle = '#00ff8888';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    } else {
-      ctx.fillStyle = '#223322';
-      ctx.fill();
-    }
-  }
-
-  // Skip hint below panel
-  if (step < 4) {
-    ctx.font = '8px "Press Start 2P"';
-    ctx.fillStyle = '#446644';
-    ctx.fillText('ESC \u8DF3\u8FC7\u6559\u7A0B', W / 2, py + ph + 18);
+    ctx.globalAlpha = 1;
   }
 
   ctx.restore();

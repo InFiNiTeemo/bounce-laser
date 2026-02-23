@@ -8,13 +8,15 @@ import { drawBackground } from './render.js';
 import { drawPlayer } from '../entities/player.js';
 import { drawShield } from '../systems/shield.js';
 import { drawEnemy, updateEnemyAI } from '../entities/enemies.js';
-import { updateBullets, drawBullet } from '../entities/bullets.js';
+import { updateBullets, drawBullet, updateChainLightnings, drawChainLightnings } from '../entities/bullets.js';
 import { updateEnemyBullets, drawEnemyBullet } from '../entities/enemyBullets.js';
 import { updateParticles, drawParticles } from '../systems/particles.js';
 import { updatePrisms, drawPrism, updatePickups, drawPickup } from '../objects/prism.js';
 import { updatePortals, drawPortal } from '../objects/portals.js';
 import { updateBarrels, drawBarrel } from '../objects/barrels.js';
 import { updateApples, drawApple } from '../objects/apples.js';
+import { updateGravityWells, drawGravityWell } from '../objects/gravityWells.js';
+import { updateAmplifiers, drawAmplifier } from '../objects/amplifiers.js';
 import { updateStartDemo, drawStartDemo } from '../ui/startDemo.js';
 import { showGameOver, showLevelClear, updateUI } from '../ui/screens.js';
 import { updateTutorial, drawTutorialOverlay } from '../systems/tutorial.js';
@@ -45,7 +47,7 @@ export function gameLoop(timestamp) {
 
     // Shield energy management
     if (game.shieldActive) {
-      game.shieldEnergy -= 25 * dt;
+      game.shieldEnergy -= 25 * game.shieldDrainMult * dt;
       if (game.shieldEnergy <= 0) {
         game.shieldEnergy = 0;
         game.shieldActive = false;
@@ -72,13 +74,28 @@ export function gameLoop(timestamp) {
     updatePortals(dt);
     updatePickups(dt);
     updateApples(dt);
+    updateGravityWells(dt);
+    updateAmplifiers(dt);
     updateBullets(dt);
     updateEnemyBullets(dt);
     updateBarrels(dt);
+    updateChainLightnings(dt);
     updateParticles(dt);
 
     if (game.screenShake > 0) {
       game.screenShake -= dt;
+    }
+
+    // 二次生命特效更新
+    if (game.secondLifeRing) {
+      const r = game.secondLifeRing;
+      r.life -= dt;
+      r.radius = r.maxRadius * (1 - r.life / r.maxLife);
+      if (r.life <= 0) game.secondLifeRing = null;
+    }
+    if (game.secondLifeFlash > 0) {
+      game.secondLifeFlash -= dt * 1.2;
+      if (game.secondLifeFlash < 0) game.secondLifeFlash = 0;
     }
 
     if (game.tutorialActive) {
@@ -106,18 +123,58 @@ export function gameLoop(timestamp) {
   drawBackground();
 
   game.portals.forEach(p => drawPortal(p));
+  game.gravityWells.forEach(gw => drawGravityWell(gw));
   game.prisms.forEach(p => drawPrism(p));
   game.barrels.forEach(b => drawBarrel(b));
+  game.amplifiers.forEach(a => drawAmplifier(a));
   game.pickups.forEach(pk => drawPickup(pk));
   game.apples.forEach(a => drawApple(a));
   game.enemies.forEach(e => drawEnemy(e));
   game.enemyBullets.forEach(eb => drawEnemyBullet(eb));
   game.bullets.forEach(b => drawBullet(b));
+  drawChainLightnings();
 
   if (game.playerAlive) drawPlayer();
   if (game.playerAlive && game.shieldActive) drawShield();
 
   drawParticles();
+
+  // 二次生命触发特效：扩散冲击波环
+  if (game.secondLifeRing) {
+    const r = game.secondLifeRing;
+    const alpha = r.life / r.maxLife;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255,221,68,${alpha * 0.8})`;
+    ctx.lineWidth = 3 + alpha * 3;
+    ctx.shadowColor = '#ffdd44';
+    ctx.shadowBlur = 20 * alpha;
+    ctx.stroke();
+    // 内圈
+    ctx.beginPath();
+    ctx.arc(r.x, r.y, r.radius * 0.6, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255,255,255,${alpha * 0.5})`;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  // 二次生命触发文字："二次生命!"
+  if (game.secondLifeFlash > 0) {
+    ctx.save();
+    ctx.font = '14px "Press Start 2P"';
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = Math.min(game.secondLifeFlash, 1);
+    ctx.shadowColor = '#ffdd44';
+    ctx.shadowBlur = 16;
+    ctx.fillStyle = '#ffdd44';
+    ctx.fillText('\u4E8C\u6B21\u751F\u547D!', W / 2, H / 2 - 40);
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
 
   // Low ammo warning
   if (game.shots <= 2 && game.shots > 0 && game.running) {
@@ -129,8 +186,9 @@ export function gameLoop(timestamp) {
     ctx.globalAlpha = 1;
   }
 
-  ctx.restore();
   if (game.tutorialActive) drawTutorialOverlay();
+
+  ctx.restore();
   updateUI();
   requestAnimationFrame(gameLoop);
 }

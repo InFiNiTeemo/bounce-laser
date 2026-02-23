@@ -31,6 +31,11 @@
     image-rendering: pixelated;
   }
 
+  #gameCanvas {
+    width: 800px;
+    height: 600px;
+  }
+
   #ui-overlay {
     position: absolute;
     top: 0; left: 0; right: 0;
@@ -47,7 +52,7 @@
     border: 2px solid #00ff88;
     padding: 6px 12px;
     color: #00ff88;
-    font-size: 10px;
+    font-size: 11px;
     text-shadow: 0 0 8px #00ff88;
   }
 
@@ -80,7 +85,7 @@
   }
 
   .screen-title {
-    font-size: 32px;
+    font-size: 36px;
     text-shadow: 0 0 20px #00ff88, 0 0 40px #00ff88, 0 0 80px rgba(0, 255, 136, 0.4);
     letter-spacing: 8px;
     animation: titlePulse 2.5s ease-in-out infinite;
@@ -89,7 +94,7 @@
   }
 
   .screen-subtitle {
-    font-size: 11px;
+    font-size: 12px;
     color: #88ffcc;
     letter-spacing: 12px;
     position: relative;
@@ -97,10 +102,10 @@
   }
 
   .screen-info {
-    font-size: 8px;
+    font-size: 10px;
     color: #66ddaa;
     line-height: 2.2;
-    max-width: 420px;
+    max-width: 500px;
     position: relative;
     z-index: 2;
   }
@@ -109,12 +114,12 @@
     color: #00ff88;
     border: 1px solid #00ff8866;
     padding: 1px 5px;
-    font-size: 7px;
+    font-size: 9px;
   }
 
   .start-btn {
     font-family: 'Press Start 2P', monospace;
-    font-size: 12px;
+    font-size: 13px;
     padding: 12px 32px;
     background: transparent;
     border: 2px solid #00ff88;
@@ -135,7 +140,7 @@
   }
 
   .start-screen-divider {
-    width: 240px;
+    width: 300px;
     height: 2px;
     background: linear-gradient(90deg, transparent, #00ff88, transparent);
     box-shadow: 0 0 10px rgba(0, 255, 136, 0.4);
@@ -144,7 +149,7 @@
   }
 
   .high-score {
-    font-size: 9px;
+    font-size: 10px;
     color: #ffdd44;
     text-shadow: 0 0 8px rgba(255, 221, 68, 0.5);
     position: relative;
@@ -153,7 +158,7 @@
   }
 
   .start-hint {
-    font-size: 7px;
+    font-size: 9px;
     color: #335544;
     animation: pulse 2s ease-in-out infinite;
     position: relative;
@@ -204,39 +209,42 @@
     position: absolute; bottom: 12px; right: 16px; z-index: 10;
     display: flex; align-items: center; gap: 8px; pointer-events: all;
   }
-  #bounceControl label { font-size: 8px; color: #00ff88; font-family: 'Press Start 2P', monospace; }
-  #bounceControl select { font-family: 'Press Start 2P', monospace; font-size: 8px; background: rgba(0,0,0,0.8); color: #00ff88; border: 1px solid #00ff88; padding: 4px 6px; cursor: pointer; }
+  #bounceControl label { font-size: 10px; color: #00ff88; font-family: 'Press Start 2P', monospace; }
+  #bounceControl select { font-family: 'Press Start 2P', monospace; font-size: 10px; background: rgba(0,0,0,0.8); color: #00ff88; border: 1px solid #00ff88; padding: 4px 6px; cursor: pointer; }
 
-  .game-over-title { font-size: 20px; color: #ff4444; text-shadow: 0 0 20px #ff4444; }
-  .level-clear-title { font-size: 20px; color: #ffdd44; text-shadow: 0 0 20px #ffdd44; }
+  .game-over-title { font-size: 22px; color: #ff4444; text-shadow: 0 0 20px #ff4444; }
+  .level-clear-title { font-size: 22px; color: #ffdd44; text-shadow: 0 0 20px #ffdd44; }
   .btn-row { display: flex; gap: 12px; position: relative; z-index: 2; }
 
   #levelSelectScreen {
     gap: 16px;
+    overflow-y: auto;
+    justify-content: flex-start;
+    padding: 8vh 0 30px 0;
   }
   .level-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-  .level-btn { font-family: 'Press Start 2P', monospace; font-size: 11px; width: 72px; height: 52px; background: transparent; border: 2px solid #00ff88; color: #00ff88; cursor: pointer; text-shadow: 0 0 8px #00ff88; transition: all 0.2s; }
+  .level-btn { font-family: 'Press Start 2P', monospace; font-size: 12px; width: 80px; height: 56px; background: transparent; border: 2px solid #00ff88; color: #00ff88; cursor: pointer; text-shadow: 0 0 8px #00ff88; transition: all 0.2s; }
   .level-btn:hover:not(.locked) { background: #00ff88; color: #0a0a12; box-shadow: 0 0 20px #00ff88; }
   .level-btn.locked { border-color: #333; color: #333; cursor: not-allowed; text-shadow: none; }
   .level-btn.cleared { border-color: #ffdd44; color: #ffdd44; text-shadow: 0 0 8px #ffdd44; }
   .level-btn.cleared:hover { background: #ffdd44; color: #0a0a12; box-shadow: 0 0 20px #ffdd44; }
 
-  .upgrade-subtitle { font-size: 9px; color: #ffdd44; text-shadow: 0 0 8px rgba(255,221,68,0.4); position: relative; z-index: 2; }
-  #upgradePanel { display: flex; gap: 14px; position: relative; z-index: 2; }
-  .upgrade-card { background: rgba(0,0,0,0.7); border: 2px solid #334433; padding: 14px 10px 10px; width: 155px; cursor: pointer; transition: all 0.25s; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 7px; pointer-events: all; font-family: 'Press Start 2P', monospace; opacity: 0; transform: translateY(15px); animation: fadeInUp 0.4s ease forwards; }
+  .upgrade-subtitle { font-size: 11px; color: #ffdd44; text-shadow: 0 0 8px rgba(255,221,68,0.4); position: relative; z-index: 2; }
+  #upgradePanel { display: flex; gap: 18px; position: relative; z-index: 2; }
+  .upgrade-card { background: rgba(0,0,0,0.7); border: 2px solid #334433; padding: 18px 16px 13px; width: 228px; cursor: pointer; transition: all 0.25s; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 9px; pointer-events: all; font-family: 'Press Start 2P', monospace; opacity: 0; transform: translateY(15px); animation: fadeInUp 0.4s ease forwards; }
   .upgrade-card:nth-child(1) { animation-delay: 0.3s; }
   .upgrade-card:nth-child(2) { animation-delay: 0.5s; }
   .upgrade-card:nth-child(3) { animation-delay: 0.7s; }
   .upgrade-card:hover { border-color: #ffdd44; background: rgba(255,221,68,0.08); box-shadow: 0 0 20px rgba(255,221,68,0.25); transform: translateY(-4px); }
-  .upgrade-name { font-size: 9px; text-shadow: 0 0 8px currentColor; }
-  .upgrade-value { font-size: 8px; color: #fff; background: rgba(255,255,255,0.06); padding: 3px 8px; }
-  .upgrade-desc { font-size: 6px; color: #668866; line-height: 1.8; }
-  .upgrade-key { font-size: 7px; color: #444; border: 1px solid #333; padding: 2px 6px; }
+  .upgrade-name { font-size: 14px; text-shadow: 0 0 8px currentColor; }
+  .upgrade-value { font-size: 13px; color: #fff; background: rgba(255,255,255,0.06); padding: 4px 10px; }
+  .upgrade-desc { font-size: 10px; color: #668866; line-height: 1.8; }
+  .upgrade-key { font-size: 12px; color: #444; border: 1px solid #333; padding: 3px 8px; }
 
   /* ---- Main Menu ---- */
   .menu-buttons { display: flex; flex-direction: column; gap: 12px; position: relative; z-index: 2; }
   .menu-btn {
-    min-width: 220px; font-family: 'Press Start 2P', monospace; font-size: 12px;
+    min-width: 240px; font-family: 'Press Start 2P', monospace; font-size: 13px;
     padding: 14px 32px; background: transparent; border: 2px solid #00ff88;
     color: #00ff88; cursor: pointer; text-shadow: 0 0 8px #00ff88; transition: all 0.2s; pointer-events: all;
   }
@@ -246,14 +254,14 @@
   .menu-btn-continue { animation: fadeInUp 0.5s ease 0.95s both; }
   .menu-btn-continue:not(:disabled) { border-color: #ffdd44; color: #ffdd44; text-shadow: 0 0 8px rgba(255,221,68,0.5); }
   .menu-btn-continue:not(:disabled):hover { background: #ffdd44; color: #0a0a12; box-shadow: 0 0 20px #ffdd44, 0 0 40px rgba(255,221,68,0.3); text-shadow: none; }
-  .menu-btn-select { animation: fadeInUp 0.5s ease 1.1s both; font-size: 10px; padding: 10px 24px; border-color: #557799; color: #557799; text-shadow: 0 0 6px rgba(85,119,153,0.3); }
+  .menu-btn-select { animation: fadeInUp 0.5s ease 1.1s both; font-size: 11px; padding: 10px 24px; border-color: #557799; color: #557799; text-shadow: 0 0 6px rgba(85,119,153,0.3); }
   .menu-btn-select:hover { background: #557799 !important; color: #0a0a12 !important; box-shadow: 0 0 20px #557799 !important; text-shadow: none !important; }
-  .save-info { font-size: 7px; color: #887744; position: relative; z-index: 2; min-height: 10px; margin-top: -8px; }
-  .help-toggle { font-family: 'Press Start 2P', monospace; font-size: 8px; background: transparent; border: none; color: #335544; cursor: pointer; padding: 4px 12px; transition: color 0.2s; position: relative; z-index: 2; pointer-events: all; }
+  .save-info { font-size: 9px; color: #887744; position: relative; z-index: 2; min-height: 10px; margin-top: -8px; }
+  .help-toggle { font-family: 'Press Start 2P', monospace; font-size: 10px; background: transparent; border: none; color: #335544; cursor: pointer; padding: 4px 12px; transition: color 0.2s; position: relative; z-index: 2; pointer-events: all; }
   .help-toggle:hover { color: #00ff88; }
   .help-panel { max-height: 0; overflow: hidden; transition: max-height 0.35s ease, opacity 0.35s ease; opacity: 0; position: relative; z-index: 2; }
   .help-panel.show { max-height: 180px; opacity: 1; }
-  .back-menu-btn { font-family: 'Press Start 2P', monospace; font-size: 9px; padding: 8px 20px; background: transparent; border: 1px solid #335544; color: #557755; cursor: pointer; transition: all 0.2s; pointer-events: all; position: relative; z-index: 2; }
+  .back-menu-btn { font-family: 'Press Start 2P', monospace; font-size: 10px; padding: 8px 20px; background: transparent; border: 1px solid #335544; color: #557755; cursor: pointer; transition: all 0.2s; pointer-events: all; position: relative; z-index: 2; }
   .back-menu-btn:hover { border-color: #00ff88; color: #00ff88; }
 
   /* Intro Screen */
@@ -263,27 +271,27 @@
     background: rgba(5, 5, 15, 0.92); z-index: 20;
     color: #00ff88; text-align: center; gap: 14px;
   }
-  .intro-title { font-size: 18px; color: #ffdd44; text-shadow: 0 0 20px rgba(255,221,68,0.5); letter-spacing: 6px; }
-  .intro-subtitle { font-size: 9px; color: #aa8844; letter-spacing: 10px; margin-bottom: 8px; }
-  .intro-cards { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; max-width: 560px; }
+  .intro-title { font-size: 24px; color: #ffdd44; text-shadow: 0 0 20px rgba(255,221,68,0.5); letter-spacing: 6px; }
+  .intro-subtitle { font-size: 12px; color: #aa8844; letter-spacing: 10px; margin-bottom: 12px; }
+  .intro-cards { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; max-width: 640px; }
   .intro-card {
-    background: rgba(0,0,0,0.7); border: 2px solid #334433; padding: 12px 10px 10px;
-    width: 120px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+    background: rgba(0,0,0,0.7); border: 2px solid #334433; padding: 16px 14px 14px;
+    width: 160px; display: flex; flex-direction: column; align-items: center; gap: 8px;
     font-family: 'Press Start 2P', monospace;
     opacity: 0; transform: translateY(15px); animation: fadeInUp 0.4s ease forwards;
   }
-  .intro-card canvas { border: 1px solid #1a2a1e; image-rendering: pixelated; }
-  .intro-card-name { font-size: 9px; text-shadow: 0 0 8px currentColor; }
-  .intro-card-name-en { font-size: 6px; opacity: 0.6; }
-  .intro-card-desc { font-size: 6px; color: #668866; line-height: 1.8; }
-  .intro-hint { font-size: 7px; color: #557755; animation: pulse 2s ease-in-out infinite; margin-top: 8px; }
+  .intro-card canvas { border: 1px solid #1a2a1e; image-rendering: pixelated; width: 80px; height: 80px; }
+  .intro-card-name { font-size: 13px; text-shadow: 0 0 8px currentColor; }
+  .intro-card-name-en { font-size: 10px; opacity: 0.6; }
+  .intro-card-desc { font-size: 10px; color: #668866; line-height: 1.8; }
+  .intro-hint { font-size: 11px; color: #557755; animation: pulse 2s ease-in-out infinite; margin-top: 12px; }
 
   /* Pause Screen */
   #pauseScreen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(5, 5, 15, 0.92); z-index: 20; color: #00ff88; text-align: center; gap: 16px; }
   .pause-title { font-size: 20px; color: #00ff88; text-shadow: 0 0 20px #00ff88; }
   #pauseMenu { display: flex; flex-direction: column; gap: 12px; align-items: center; }
   #statusPanel { display: flex; flex-direction: column; gap: 12px; align-items: center; }
-  #statusContent { display: grid; grid-template-columns: auto auto; gap: 6px 16px; text-align: left; font-size: 8px; color: #66ddaa; line-height: 2; }
+  #statusContent { display: grid; grid-template-columns: auto auto; gap: 6px 16px; text-align: left; font-size: 10px; color: #66ddaa; line-height: 2; }
   #statusContent .stat-label { color: #557755; }
   #statusContent .stat-value { color: #00ff88; text-shadow: 0 0 6px rgba(0,255,136,0.3); }
   #pauseHelpPanel { display: flex; flex-direction: column; gap: 12px; align-items: center; }
@@ -294,16 +302,17 @@
 
   #editorScreen {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    display: flex; flex-direction: column; justify-content: flex-start; align-items: center;
     background: #0a0a12; z-index: 100; color: #00ff88; gap: 0;
+    overflow-y: auto; padding: 5vh 0 10px 0;
   }
   #editorToolbar {
     display: flex; align-items: center; gap: 6px; padding: 8px 12px;
     background: rgba(0,0,0,0.8); border-bottom: 2px solid #1a1a2e;
-    flex-wrap: wrap; max-width: 680px; width: 100%;
+    flex-wrap: wrap; max-width: 648px; width: 100%;
   }
   .editor-tool {
-    font-family: 'Press Start 2P', monospace; font-size: 8px;
+    font-family: 'Press Start 2P', monospace; font-size: 10px;
     padding: 6px 10px; background: transparent; border: 1px solid #335544;
     color: #557755; cursor: pointer; transition: all 0.2s;
   }
@@ -311,10 +320,10 @@
   .editor-tool.active { border-color: #00ff88; color: #0a0a12; background: #00ff88; text-shadow: none; }
   .editor-sep { color: #222; margin: 0 2px; user-select: none; }
   #editorToolbar label {
-    font-size: 7px; color: #557755; display: flex; align-items: center; gap: 4px;
+    font-size: 9px; color: #557755; display: flex; align-items: center; gap: 4px;
   }
   #editorToolbar input[type="text"], #editorToolbar input[type="number"] {
-    font-family: 'Press Start 2P', monospace; font-size: 7px;
+    font-family: 'Press Start 2P', monospace; font-size: 9px;
     background: rgba(0,0,0,0.8); color: #00ff88; border: 1px solid #335544;
     padding: 3px 6px; width: 80px;
   }
@@ -329,10 +338,10 @@
 
   #editorSubtypePanel {
     display: flex; gap: 4px; min-height: 28px; padding: 4px 12px;
-    max-width: 680px; width: 100%;
+    max-width: 648px; width: 100%;
   }
   .editor-subtype {
-    font-family: 'Press Start 2P', monospace; font-size: 7px;
+    font-family: 'Press Start 2P', monospace; font-size: 9px;
     padding: 4px 8px; background: transparent; border: 1px solid #333;
     color: #555; cursor: pointer; transition: all 0.2s;
   }
@@ -340,18 +349,18 @@
   .editor-subtype.active { border-color: #aa44ff; color: #0a0a12; background: #aa44ff; }
 
   #editorProperties {
-    padding: 6px 12px; min-height: 40px; max-width: 680px; width: 100%;
+    padding: 6px 12px; min-height: 40px; max-width: 648px; width: 100%;
     background: rgba(0,0,0,0.6); border: 1px solid #1a1a2e;
   }
-  .editor-prop-hint { font-size: 7px; color: #333; }
+  .editor-prop-hint { font-size: 9px; color: #333; }
   .prop-row {
-    display: flex; gap: 12px; align-items: center; font-size: 7px; color: #66ddaa;
+    display: flex; gap: 12px; align-items: center; font-size: 9px; color: #66ddaa;
     padding: 2px 0;
   }
   .prop-row label { display: flex; align-items: center; gap: 4px; color: #557755; }
   .prop-row span { color: #aa44ff; }
   .prop-input {
-    font-family: 'Press Start 2P', monospace; font-size: 7px;
+    font-family: 'Press Start 2P', monospace; font-size: 9px;
     background: rgba(0,0,0,0.8); color: #00ff88; border: 1px solid #335544;
     padding: 2px 4px;
   }
@@ -359,10 +368,10 @@
 
   #editorActions {
     display: flex; gap: 6px; padding: 8px 12px; flex-wrap: wrap;
-    max-width: 680px; width: 100%;
+    max-width: 648px; width: 100%;
   }
   #editorActions button {
-    font-family: 'Press Start 2P', monospace; font-size: 7px;
+    font-family: 'Press Start 2P', monospace; font-size: 9px;
     padding: 6px 10px; background: transparent; border: 1px solid #335544;
     color: #557755; cursor: pointer; transition: all 0.2s;
   }
@@ -394,7 +403,7 @@
     border: 1px solid #222; background: rgba(0,0,0,0.4);
   }
   .load-item-name { font-size: 8px; color: #00ff88; flex: 1; }
-  .load-item-info { font-size: 6px; color: #555; }
+  .load-item-info { font-size: 8px; color: #555; }
   .load-item-btn {
     font-family: 'Press Start 2P', monospace; font-size: 6px;
     padding: 3px 6px; background: transparent; cursor: pointer; border: 1px solid #335544; color: #557755;
@@ -432,10 +441,107 @@
   .bestiary-card:not(.locked):hover { border-color: #44ddaa; background: rgba(68,221,170,0.06); box-shadow: 0 0 15px rgba(68,221,170,0.2); }
   .bestiary-card.locked { border-color: #222; }
   .bestiary-preview { image-rendering: pixelated; }
-  .bestiary-name { font-size: 8px; text-shadow: 0 0 6px currentColor; }
-  .bestiary-desc { font-size: 6px; color: #668866; line-height: 1.8; }
-  .bestiary-level { font-size: 6px; color: #444; }
+  .bestiary-name { font-size: 10px; text-shadow: 0 0 6px currentColor; }
+  .bestiary-desc { font-size: 8px; color: #668866; line-height: 1.8; }
+  .bestiary-level { font-size: 8px; color: #444; }
   .bestiary-lock { font-size: 24px; color: #333; padding: 10px 0; }
+
+  /* ---- Admin Review Panel ---- */
+  #adminPanel {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    background: #0a0a12; z-index: 100; color: #00ff88; text-align: center; gap: 14px;
+  }
+  .admin-card {
+    background: rgba(0,0,0,0.6); border: 2px solid #334433; padding: 12px 14px;
+    width: 360px; text-align: left; display: flex; flex-direction: column; gap: 6px;
+    font-family: 'Press Start 2P', monospace; transition: all 0.2s;
+  }
+  .admin-card:hover { border-color: #44ddaa; }
+  .admin-card-header { display: flex; justify-content: space-between; align-items: center; }
+  .admin-card-name { font-size: 10px; color: #44ddaa; text-shadow: 0 0 6px rgba(68,221,170,0.3); }
+  .admin-card-author { font-size: 7px; color: #557755; }
+  .admin-card-info { font-size: 7px; color: #557755; }
+  .admin-card-actions { display: flex; gap: 8px; margin-top: 4px; }
+  .admin-btn {
+    font-family: 'Press Start 2P', monospace; font-size: 7px;
+    padding: 5px 10px; background: transparent; cursor: pointer; transition: all 0.2s;
+  }
+  .admin-btn-play { border: 1px solid #557799; color: #557799; }
+  .admin-btn-play:hover { border-color: #44aaff; color: #44aaff; }
+  .admin-btn-approve { border: 1px solid #337733; color: #337733; }
+  .admin-btn-approve:hover { border-color: #00ff88; color: #00ff88; background: rgba(0,255,136,0.1); }
+  .admin-btn-reject { border: 1px solid #553333; color: #775555; }
+  .admin-btn-reject:hover { border-color: #ff4444; color: #ff4444; background: rgba(255,68,68,0.1); }
+  #adminLoginSection { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  #adminPwd {
+    font-family: 'Press Start 2P', monospace; font-size: 10px;
+    background: rgba(0,0,0,0.8); color: #00ff88; border: 2px solid #335544;
+    padding: 8px 14px; width: 200px; text-align: center;
+  }
+  #pendingList {
+    display: flex; flex-direction: column; gap: 10px; align-items: center;
+    max-height: 50vh; overflow-y: auto; padding: 4px;
+  }
+
+  /* ---- Tutorial Overlay (DOM for crisp text) ---- */
+  #tutorialOverlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 15;
+    pointer-events: none;
+    font-family: 'Press Start 2P', monospace;
+    transition: opacity 1.5s ease;
+  }
+  #tutorialOverlay.fade-out { opacity: 0; }
+  #tutorialPanel {
+    position: absolute;
+    bottom: 60px; left: 50%; transform: translateX(-50%); width: 500px; height: 90px;
+    background: rgba(0, 0, 0, 0.82);
+    border: 1px solid rgba(0, 255, 136, 0.27);
+    text-align: center;
+  }
+  #tutorialPanel::before {
+    content: ''; position: absolute; top: 0; left: 1px; right: 1px; height: 1px;
+    background: rgba(0, 255, 136, 0.2);
+  }
+  #tutorialStepLabel {
+    margin-top: 12px;
+    font-size: 9px;
+    color: #557755;
+  }
+  #tutorialMainText {
+    margin-top: 12px;
+    font-size: 14px;
+    color: #00ff88;
+    text-shadow: 0 0 10px #00ff88;
+  }
+  #tutorialDots {
+    position: absolute;
+    bottom: 8px; left: 0; right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+  }
+  .tut-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #223322;
+  }
+  .tut-dot.done { background: #00ff88; }
+  .tut-dot.current {
+    background: #00ff88;
+    animation: tutDotPulse 0.6s ease-in-out infinite alternate;
+  }
+  @keyframes tutDotPulse {
+    from { box-shadow: 0 0 4px #00ff88; transform: scale(1); }
+    to { box-shadow: 0 0 12px #00ff88; transform: scale(1.3); }
+  }
+  #tutorialSkip {
+    position: absolute;
+    bottom: 30px; left: 50%; transform: translateX(-50%); width: 500px;
+    text-align: center;
+    font-size: 9px;
+    color: #446644;
+  }
 </style>
 </head>
 <body>
@@ -445,7 +551,7 @@
   <div class="screen-title fade-in-1">反弹激光</div>
   <div class="screen-subtitle fade-in-1">BOUNCE LASER</div>
   <div class="start-screen-divider fade-in-2"></div>
-  <canvas id="demoCanvas" width="320" height="180" class="fade-in-2"></canvas>
+  <canvas id="demoCanvas" width="320" height="180" style="width:400px;height:225px;" class="fade-in-2"></canvas>
   <div class="high-score fade-in-3" id="highScoreDisplay"></div>
   <div class="menu-buttons fade-in-3">
     <button class="menu-btn menu-btn-primary" id="startBtn">开始游戏</button>
@@ -462,8 +568,9 @@
     <span class="key-hint">RIGHT CLICK</span> 按住激活全息护盾<br>
     子弹会反弹 - 小心别打到自己!<br>
     击杀敌人获得弹药补给<br>
-    <button class="help-toggle" id="replayTutorialBtn" style="margin-top:4px;color:#ffdd44;border:1px solid #ffdd4466;padding:2px 8px;font-size:7px;">重玩教程</button>
+    <button class="help-toggle" id="replayTutorialBtn" style="margin-top:4px;color:#ffdd44;border:1px solid #ffdd4466;padding:2px 8px;font-size:9px;">重玩教程</button>
   </div>
+  <button class="help-toggle fade-in-5" id="clearCacheBtn" style="color:#ff6644;border:1px solid #ff664444;padding:2px 8px;font-size:9px;">清除缓存</button>
   <div class="start-hint fade-in-5">- SPACE 开始游戏 -</div>
 </div>
 
@@ -484,8 +591,33 @@
   <button class="start-btn" id="bestiaryBackBtn">返回</button>
 </div>
 
+<!-- Admin Review Panel (关卡审核) -->
+<div id="adminPanel" class="hidden">
+  <div class="screen-title" style="font-size:20px;">关卡审核</div>
+  <div class="screen-subtitle">LEVEL REVIEW</div>
+  <div id="adminLoginSection">
+    <input type="password" id="adminPwd" placeholder="输入密码">
+    <button class="start-btn" id="adminLoginBtn" style="font-size:10px;padding:8px 20px;">登录</button>
+  </div>
+  <div id="adminContent" class="hidden">
+    <button class="start-btn" id="adminRefreshBtn" style="font-size:8px;padding:6px 16px;border-color:#44ddaa;color:#44ddaa;">刷新列表</button>
+    <div id="pendingList"></div>
+  </div>
+  <button class="start-btn" id="adminBackBtn" style="font-size:10px;">返回</button>
+</div>
+
 <div id="gameContainer" class="hidden">
   <canvas id="gameCanvas"></canvas>
+
+  <!-- Tutorial Panel (DOM overlay for crisp text rendering) -->
+  <div id="tutorialOverlay" class="hidden">
+    <div id="tutorialPanel">
+      <div id="tutorialStepLabel"></div>
+      <div id="tutorialMainText"></div>
+      <div id="tutorialDots"></div>
+    </div>
+    <div id="tutorialSkip">ESC \u8DF3\u8FC7\u6559\u7A0B</div>
+  </div>
 
   <div id="ui-overlay">
     <div class="ui-box" id="hpDisplay">HP: &#9829;&#9829;&#9829;</div>
@@ -494,6 +626,7 @@
     <div class="ui-box" id="enemyDisplay">敌人: 0</div>
     <div class="ui-box" id="shieldDisplay">护盾: 100%</div>
     <div class="ui-box" id="piercingDisplay" style="display:none">穿透: 0</div>
+    <div class="ui-box" id="secondLifeDisplay" style="display:none">二次生命: 可用</div>
   </div>
 
   <div id="bounceControl">
@@ -591,6 +724,7 @@
     <button id="editorPlayTest">试玩</button>
     <button id="editorCopyJSON">复制JSON</button>
     <button id="editorPasteJSON">粘贴JSON</button>
+    <button id="editorExportAll">导出全部</button>
     <button id="editorUndo">撤销</button>
     <button id="editorRedo">重做</button>
     <button id="editorBack">返回</button>

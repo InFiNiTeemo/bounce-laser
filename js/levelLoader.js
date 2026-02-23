@@ -1,11 +1,11 @@
 /**
  * levelLoader.js - Loads a level data object into the game state.
  *
- * Supports two modes:
- *   - Entities WITH x,y → placed at exact coordinates (editor levels)
- *   - Entities WITHOUT x,y → positions auto-generated (builtin levels)
+ * Supports two modes controlled by the `fixedLayout` tag:
+ *   - fixedLayout: true  → use exact x,y from level data (editor / community levels)
+ *   - fixedLayout: false → auto-generate random positions (builtin levels)
  */
-import { W, H, PORTAL_RADIUS } from './core/constants.js';
+import { W, H, PORTAL_RADIUS, GRAVITY_WELL_RADIUS, PRISM_UNIT_W } from './core/constants.js';
 import { game, player } from './core/state.js';
 
 // ---- Position generation helpers ----
@@ -33,6 +33,8 @@ function collectAvoids(extraDist) {
     list.push({ x: portal.bx, y: portal.by, dist: 60 });
   }
   for (const a of game.apples) list.push({ x: a.x, y: a.y, dist: 40 });
+  for (const gw of game.gravityWells) list.push({ x: gw.x, y: gw.y, dist: 60 });
+  for (const amp of game.amplifiers) list.push({ x: amp.x, y: amp.y, dist: 40 });
   return list;
 }
 
@@ -43,7 +45,7 @@ function buildEnemy(def) {
     type: def.type || 'basic',
     x: def.x ?? 0,
     y: def.y ?? 0,
-    size: def.type === 'tank' ? 16 : (def.type === 'sniper' ? 10 : 12),
+    size: def.type === 'tank' ? 16 : (def.type === 'sniper' ? 10 : (def.type === 'healer' || def.type === 'ghost') ? 11 : 12),
     hp: def.hp ?? 1,
     maxHp: def.hp ?? 1,
     canShoot: def.canShoot ?? false,
@@ -68,6 +70,22 @@ function buildEnemy(def) {
     e.charging = false;
     e.chargeTimer = 0;
   }
+  if (e.type === 'healer') {
+    e.hp = Math.max(2, e.hp);
+    e.maxHp = Math.max(2, e.maxHp);
+    e.healTimer = 5 + Math.random() * 2;
+    e.healRange = 120;
+    e.healPulseTimer = 0;
+    e.canShoot = false;
+    e.shootTimer = 999;
+  }
+  if (e.type === 'ghost') {
+    e.hp = Math.max(2, e.hp);
+    e.maxHp = Math.max(2, e.maxHp);
+    e.visible = true;
+    e.phaseTimer = 3 + Math.random();
+    e.fadeAlpha = 1.0;
+  }
   return e;
 }
 
@@ -75,9 +93,11 @@ function buildPrism(def) {
   const type = def.type || 'static';
   const x = def.x ?? 0;
   const y = def.y ?? 0;
+  const segments = def.segments ?? 1;
   return {
     x, y,
-    w: def.w || 40,
+    segments,
+    w: segments > 1 ? segments * PRISM_UNIT_W : (def.w || 40),
     h: def.h || 12,
     angle: def.angle ?? Math.random() * Math.PI,
     type,
@@ -129,6 +149,36 @@ function buildApple(def) {
   };
 }
 
+function buildGravityWell(def) {
+  const type = def.type || 'attract';
+  const isDestructible = def.hp != null && def.hp > 0;
+  return {
+    x: def.x ?? 0,
+    y: def.y ?? 0,
+    type,
+    hp: isDestructible ? def.hp : -1,
+    maxHp: isDestructible ? def.hp : -1,
+    flashTimer: 0,
+    glowPhase: Math.random() * Math.PI * 2,
+    orbitPhase: Math.random() * Math.PI * 2,
+    pulseTimer: Math.random() * 3,
+    currentStrength: type === 'attract' ? 0.8 : (type === 'repel' ? -0.6 : 0),
+  };
+}
+
+function buildAmplifier(def) {
+  const charges = def.charges ?? 3;
+  return {
+    x: def.x ?? 0,
+    y: def.y ?? 0,
+    charges,
+    maxCharges: charges,
+    glowPhase: Math.random() * Math.PI * 2,
+    flashTimer: 0,
+    shatterTimer: 0,
+  };
+}
+
 // ---- Materialize: generate concrete positions without touching game state ----
 
 export function materializeLevel(data) {
@@ -136,7 +186,8 @@ export function materializeLevel(data) {
   const saved = {
     enemies: game.enemies, enemyBullets: game.enemyBullets,
     prisms: game.prisms, barrels: game.barrels, portals: game.portals,
-    apples: game.apples, pickups: game.pickups, bullets: game.bullets,
+    apples: game.apples, gravityWells: game.gravityWells, amplifiers: game.amplifiers,
+    pickups: game.pickups, bullets: game.bullets,
     particles: game.particles, levelEnemies: game.levelEnemies,
     killedEnemies: game.killedEnemies,
     px: player.x, py: player.y,
@@ -147,6 +198,7 @@ export function materializeLevel(data) {
   const result = {
     id: data.id || null,
     name: data.name || '\u81EA\u5B9A\u4E49\u5173\u5361',
+    fixedLayout: true,
     shots: data.shots || 10,
     playerSpawn: { x: player.x, y: player.y },
     enemies: game.enemies.map(e => ({
@@ -156,6 +208,8 @@ export function materializeLevel(data) {
     prisms: game.prisms.map(p => ({
       type: p.type, x: Math.round(p.x), y: Math.round(p.y),
       angle: p.angle, splitCount: p.splitCount,
+      segments: p.segments || 1,
+      w: p.w || 40, h: p.h || 12,
       ...(p.type === 'destructible' ? { hp: p.maxHp } : {}),
     })),
     barrels: game.barrels.map(b => ({ x: Math.round(b.x), y: Math.round(b.y) })),
@@ -164,12 +218,20 @@ export function materializeLevel(data) {
       bx: Math.round(p.bx), by: Math.round(p.by),
     })),
     apples: game.apples.map(a => ({ x: Math.round(a.x), y: Math.round(a.y) })),
+    gravityWells: game.gravityWells.map(gw => ({
+      type: gw.type, x: Math.round(gw.x), y: Math.round(gw.y),
+      ...(gw.hp >= 0 ? { hp: gw.maxHp } : {}),
+    })),
+    amplifiers: game.amplifiers.map(a => ({
+      x: Math.round(a.x), y: Math.round(a.y), charges: a.maxCharges,
+    })),
   };
 
   // Restore
   game.enemies = saved.enemies; game.enemyBullets = saved.enemyBullets;
   game.prisms = saved.prisms; game.barrels = saved.barrels;
   game.portals = saved.portals; game.apples = saved.apples;
+  game.gravityWells = saved.gravityWells; game.amplifiers = saved.amplifiers;
   game.pickups = saved.pickups; game.bullets = saved.bullets;
   game.particles = saved.particles; game.levelEnemies = saved.levelEnemies;
   game.killedEnemies = saved.killedEnemies;
@@ -181,6 +243,8 @@ export function materializeLevel(data) {
 // ---- Main loader ----
 
 export function loadLevelData(data) {
+  const fixed = !!data.fixedLayout;
+
   // Reset arrays
   game.enemies = [];
   game.enemyBullets = [];
@@ -188,6 +252,8 @@ export function loadLevelData(data) {
   game.barrels = [];
   game.portals = [];
   game.apples = [];
+  game.gravityWells = [];
+  game.amplifiers = [];
   game.pickups = [];
   game.bullets = [];
   game.particles = [];
@@ -204,7 +270,7 @@ export function loadLevelData(data) {
   // --- Enemies ---
   for (const def of (data.enemies || [])) {
     const e = buildEnemy(def);
-    if (def.x != null && def.y != null) {
+    if (fixed) {
       e.x = def.x;
       e.y = def.y;
     } else {
@@ -219,10 +285,7 @@ export function loadLevelData(data) {
   // --- Prisms ---
   for (const def of (data.prisms || [])) {
     const p = buildPrism(def);
-    if (def.x != null && def.y != null) {
-      p.x = def.x;
-      p.y = def.y;
-    } else {
+    if (!fixed) {
       const avoids = collectAvoids(50);
       const pos = randPos(60, avoids, 50);
       p.x = pos.x;
@@ -236,10 +299,7 @@ export function loadLevelData(data) {
   // --- Barrels ---
   for (const def of (data.barrels || [])) {
     const b = buildBarrel(def);
-    if (def.x != null && def.y != null) {
-      b.x = def.x;
-      b.y = def.y;
-    } else {
+    if (!fixed) {
       const avoids = collectAvoids(40);
       const pos = randPos(50, avoids, 50);
       b.x = pos.x;
@@ -251,13 +311,7 @@ export function loadLevelData(data) {
   // --- Portals ---
   for (const def of (data.portals || [])) {
     const portal = buildPortal(def);
-    if (def.ax != null && def.ay != null && def.bx != null && def.by != null) {
-      portal.ax = def.ax;
-      portal.ay = def.ay;
-      portal.bx = def.bx;
-      portal.by = def.by;
-    } else {
-      // Auto-generate pair
+    if (!fixed) {
       const avoidsA = collectAvoids(60);
       const posA = randPos(60, avoidsA, 60);
       portal.ax = posA.x;
@@ -273,10 +327,7 @@ export function loadLevelData(data) {
   // --- Apples ---
   for (const def of (data.apples || [])) {
     const a = buildApple(def);
-    if (def.x != null && def.y != null) {
-      a.x = def.x;
-      a.y = def.y;
-    } else {
+    if (!fixed) {
       const avoids = collectAvoids(40);
       const pos = randPos(50, avoids, 40);
       a.x = pos.x;
@@ -285,7 +336,33 @@ export function loadLevelData(data) {
     game.apples.push(a);
   }
 
+  // --- Gravity Wells ---
+  for (const def of (data.gravityWells || [])) {
+    const gw = buildGravityWell(def);
+    if (!fixed) {
+      const avoids = collectAvoids(60);
+      const pos = randPos(60, avoids, 60);
+      gw.x = pos.x;
+      gw.y = pos.y;
+    }
+    game.gravityWells.push(gw);
+  }
+
+  // --- Amplifiers ---
+  for (const def of (data.amplifiers || [])) {
+    const amp = buildAmplifier(def);
+    if (!fixed) {
+      const avoids = collectAvoids(40);
+      const pos = randPos(50, avoids, 40);
+      amp.x = pos.x;
+      amp.y = pos.y;
+    }
+    game.amplifiers.push(amp);
+  }
+
   // Level tracking
   game.levelEnemies = game.enemies.length;
   game.killedEnemies = 0;
+  game.bounceKills = 0;
+  game.shieldReflectKills = 0;
 }

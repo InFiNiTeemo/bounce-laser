@@ -2,32 +2,15 @@
  * introScreen.js - Shows introduction cards for new game elements
  * when the player encounters them for the first time in a level.
  */
+import { ctx, setCtx, drawPixelRect, drawPixelCircle } from '../core/render.js';
 import { COLORS, ENEMY_COLORS, BARREL_COLORS, PRISM_COLORS, PORTAL_COLORS } from '../core/constants.js';
+import { drawEnemy } from '../entities/enemies.js';
+import { drawBarrel } from '../objects/barrels.js';
+import { drawPrism } from '../objects/prism.js';
+import { drawPortal } from '../objects/portals.js';
+import { drawApple } from '../objects/apples.js';
 
-const PX = 2;
 const STORAGE_KEY = 'bounceLaser_seenIntros';
-
-// ---- Local pixel drawing helpers (accept ctx param) ----
-
-function pxRect(c, x, y, w, h, color) {
-  c.fillStyle = color;
-  for (let i = 0; i < w; i += PX) {
-    for (let j = 0; j < h; j += PX) {
-      c.fillRect(Math.floor(x + i), Math.floor(y + j), PX, PX);
-    }
-  }
-}
-
-function pxCircle(c, cx, cy, r, color) {
-  c.fillStyle = color;
-  for (let x = -r; x <= r; x += PX) {
-    for (let y = -r; y <= r; y += PX) {
-      if (x * x + y * y <= r * r) {
-        c.fillRect(Math.floor(cx + x), Math.floor(cy + y), PX, PX);
-      }
-    }
-  }
-}
 
 // ---- Introduction definitions ----
 
@@ -36,170 +19,110 @@ const INTRO_DEFS = {
     name: '巡逻兵', nameEn: 'PATROL',
     color: ENEMY_COLORS.patrol.body,
     desc: '蓝色敌人，不会射击但会四处巡逻移动',
-    draw(c, cx, cy) {
-      // Body
-      pxCircle(c, cx, cy, 10, ENEMY_COLORS.patrol.dark);
-      pxCircle(c, cx, cy, 8, ENEMY_COLORS.patrol.body);
-      // Eye
-      pxRect(c, cx - 2, cy - 2, 4, 4, '#ffffff');
-      pxRect(c, cx, cy - 2, 2, 4, ENEMY_COLORS.patrol.eye);
-      // Direction triangle
-      c.fillStyle = ENEMY_COLORS.patrol.body;
-      c.beginPath();
-      c.moveTo(cx + 14, cy);
-      c.lineTo(cx + 10, cy - 4);
-      c.lineTo(cx + 10, cy + 4);
-      c.closePath();
-      c.fill();
-    },
   },
 
   enemy_shooting: {
     name: '敌人射击', nameEn: 'FIRE',
     color: '#ff4466',
     desc: '敌人会向你射击！用右键护盾抵挡',
-    draw(c, cx, cy) {
-      // Enemy body
-      pxCircle(c, cx - 6, cy, 8, COLORS.enemyDark);
-      pxCircle(c, cx - 6, cy, 6, COLORS.enemy);
-      // Eye
-      pxRect(c, cx - 8, cy - 2, 4, 4, '#ffffff');
-      pxRect(c, cx - 6, cy - 2, 2, 4, '#440000');
-      // Bullet
-      pxRect(c, cx + 6, cy - 1, 6, 2, COLORS.enemyBullet);
-      pxRect(c, cx + 12, cy - 1, 4, 2, '#ff884488');
-      // Muzzle flash
-      pxRect(c, cx + 2, cy - 2, 4, 4, '#ffcc44');
-    },
   },
 
   barrel: {
     name: '爆炸桶', nameEn: 'BARREL',
     color: BARREL_COLORS.body,
     desc: '击中后爆炸，造成范围伤害并可连锁引爆',
-    draw(c, cx, cy) {
-      // Barrel body
-      pxCircle(c, cx, cy, 10, BARREL_COLORS.bodyDark);
-      pxCircle(c, cx, cy, 8, BARREL_COLORS.body);
-      // Band
-      pxRect(c, cx - 8, cy - 2, 16, 4, BARREL_COLORS.band);
-      // Danger symbol
-      pxRect(c, cx - 2, cy - 2, 4, 4, BARREL_COLORS.danger);
-      // Glow
-      pxCircle(c, cx, cy - 14, 3, '#ff884466');
-    },
   },
 
   prism: {
     name: '棱镜', nameEn: 'PRISM',
     color: PRISM_COLORS.body,
     desc: '激光击中后会分裂成多束反射光',
-    draw(c, cx, cy) {
-      // Prism body (rotated rectangle)
-      c.save();
-      c.translate(cx, cy);
-      c.rotate(Math.PI / 6);
-      pxRect(c, -18, -5, 36, 10, PRISM_COLORS.bodyDark);
-      pxRect(c, -16, -3, 32, 6, PRISM_COLORS.body);
-      // Glow line
-      pxRect(c, -14, -1, 28, 2, PRISM_COLORS.glow);
-      c.restore();
-      // Split beams hint
-      c.strokeStyle = '#00ffcc44';
-      c.lineWidth = 1;
-      c.beginPath(); c.moveTo(cx + 8, cy - 2); c.lineTo(cx + 22, cy - 10); c.stroke();
-      c.beginPath(); c.moveTo(cx + 8, cy + 2); c.lineTo(cx + 22, cy + 10); c.stroke();
-    },
   },
 
   enemy_tank: {
     name: '重型敌人', nameEn: 'TANK',
     color: ENEMY_COLORS.tank.body,
     desc: '紫色大型敌人，4点HP，防御力强',
-    draw(c, cx, cy) {
-      // Body
-      pxCircle(c, cx, cy, 14, ENEMY_COLORS.tank.dark);
-      pxCircle(c, cx, cy, 12, ENEMY_COLORS.tank.body);
-      // Armor bands
-      pxRect(c, cx - 12, cy - 4, 24, 2, ENEMY_COLORS.tank.dark);
-      pxRect(c, cx - 12, cy + 2, 24, 2, ENEMY_COLORS.tank.dark);
-      // Eye
-      pxRect(c, cx - 3, cy - 3, 6, 6, '#ffffff');
-      pxRect(c, cx - 1, cy - 3, 4, 6, ENEMY_COLORS.tank.eye);
-      // Gun barrel
-      pxRect(c, cx + 12, cy - 3, 10, 6, ENEMY_COLORS.tank.dark);
-    },
   },
 
   enemy_sniper: {
     name: '狙击手', nameEn: 'SNIPER',
     color: ENEMY_COLORS.sniper.body,
     desc: '蓄力后发射高速子弹，注意红色瞄准线',
-    draw(c, cx, cy) {
-      // Body
-      pxCircle(c, cx, cy, 8, ENEMY_COLORS.sniper.dark);
-      pxCircle(c, cx, cy, 6, ENEMY_COLORS.sniper.body);
-      // Eye
-      pxRect(c, cx - 2, cy - 2, 4, 4, '#ffffff');
-      pxRect(c, cx, cy - 2, 2, 4, ENEMY_COLORS.sniper.eye);
-      // Aim line
-      c.strokeStyle = '#ff000088';
-      c.lineWidth = 1;
-      c.setLineDash([4, 3]);
-      c.beginPath();
-      c.moveTo(cx + 8, cy);
-      c.lineTo(cx + 28, cy);
-      c.stroke();
-      c.setLineDash([]);
-      // Charge glow
-      pxCircle(c, cx, cy, 10, '#ffcc0022');
-    },
   },
 
   apple: {
     name: '苹果', nameEn: 'APPLE',
     color: '#ff3333',
     desc: '用激光射击拾取，恢复1点生命值',
-    draw(c, cx, cy) {
-      // Apple body
-      pxCircle(c, cx, cy + 2, 8, '#cc0000');
-      pxCircle(c, cx, cy + 2, 6, '#ff3333');
-      // Highlight
-      pxRect(c, cx - 4, cy - 2, 2, 2, '#ff8888');
-      // Stem
-      pxRect(c, cx - 1, cy - 8, 2, 6, '#885522');
-      // Leaf
-      pxRect(c, cx + 1, cy - 8, 4, 2, '#44cc44');
-      pxRect(c, cx + 3, cy - 10, 2, 2, '#44cc44');
-    },
   },
 
   portal: {
     name: '传送门', nameEn: 'PORTAL',
     color: PORTAL_COLORS.blue,
     desc: '子弹从一端进入，另一端飞出',
-    draw(c, cx, cy) {
-      // Blue portal
-      pxCircle(c, cx - 12, cy, 10, PORTAL_COLORS.blueGlow);
-      pxCircle(c, cx - 12, cy, 8, PORTAL_COLORS.blue);
-      pxCircle(c, cx - 12, cy, 4, PORTAL_COLORS.blueBright);
-      // Orange portal
-      pxCircle(c, cx + 12, cy, 10, PORTAL_COLORS.orangeGlow);
-      pxCircle(c, cx + 12, cy, 8, PORTAL_COLORS.orange);
-      pxCircle(c, cx + 12, cy, 4, PORTAL_COLORS.orangeBright);
-      // Arrow
-      c.strokeStyle = '#ffffff44';
-      c.lineWidth = 1;
-      c.beginPath();
-      c.moveTo(cx - 2, cy);
-      c.lineTo(cx + 2, cy);
-      c.moveTo(cx, cy - 2);
-      c.lineTo(cx + 2, cy);
-      c.lineTo(cx, cy + 2);
-      c.stroke();
-    },
+  },
+
+  enemy_healer: {
+    name: '医疗兵', nameEn: 'HEALER',
+    color: '#44cc88',
+    desc: '定期治愈附近敌人，优先击杀！',
+  },
+
+  enemy_ghost: {
+    name: '幽灵', nameEn: 'GHOST',
+    color: '#44ddcc',
+    desc: '会隐形！只有显形时才能被击中',
   },
 };
+
+// ---- Draw preview using actual game draw functions ----
+
+function drawGamePreview(previewCtx, id) {
+  const prevCtx = ctx;
+  setCtx(previewCtx);
+  const cx = 40, cy = 40;
+
+  const enemyBase = { flashTimer: 0, bobPhase: 0, moveVx: 1, moveVy: 0, charging: false, chargeTimer: 0, shootTimer: 999 };
+
+  switch (id) {
+    case 'enemy_patrol':
+      drawEnemy({ ...enemyBase, type: 'patrol', x: cx, y: cy, size: 12, hp: 1, maxHp: 1, canShoot: false });
+      break;
+    case 'enemy_shooting':
+      drawEnemy({ ...enemyBase, type: 'basic', x: cx - 8, y: cy, size: 12, hp: 1, maxHp: 1, canShoot: false });
+      drawPixelRect(cx + 6, cy - 1, 6, 2, COLORS.enemyBullet);
+      drawPixelRect(cx + 12, cy - 1, 4, 2, '#ff884488');
+      drawPixelRect(cx + 2, cy - 2, 4, 4, '#ffcc44');
+      break;
+    case 'barrel':
+      drawBarrel({ x: cx, y: cy, size: 10, glowPhase: 0, exploded: false });
+      break;
+    case 'prism':
+      drawPrism({ x: cx, y: cy, w: 40, h: 12, angle: Math.PI / 6, type: 'static', hp: 3, maxHp: 3, flashTimer: 0, glowPhase: 0, rotSpeed: 0, splitCount: 2 });
+      break;
+    case 'enemy_tank':
+      drawEnemy({ ...enemyBase, type: 'tank', x: cx, y: cy, size: 16, hp: 4, maxHp: 4, canShoot: true });
+      break;
+    case 'enemy_sniper':
+      drawEnemy({ ...enemyBase, type: 'sniper', x: cx, y: cy, size: 10, hp: 1, maxHp: 1, canShoot: true });
+      break;
+    case 'apple':
+      drawApple({ x: cx, y: cy, size: 8, bobPhase: 0 });
+      break;
+    case 'portal':
+      drawPortal({ ax: cx - 16, ay: cy, bx: cx + 16, by: cy, radius: 14, spinPhase: 0 });
+      break;
+    case 'enemy_healer':
+      drawEnemy({ ...enemyBase, type: 'healer', x: cx, y: cy, size: 11, hp: 2, maxHp: 2, canShoot: false, healTimer: 5, healRange: 120, healPulseTimer: 0 });
+      break;
+    case 'enemy_ghost':
+      drawEnemy({ ...enemyBase, type: 'ghost', x: cx, y: cy, size: 11, hp: 2, maxHp: 2, canShoot: false, fadeAlpha: 0.7, visible: true, phaseTimer: 3 });
+      break;
+  }
+
+  setCtx(prevCtx);
+}
 
 // ---- Level detection ----
 
@@ -209,6 +132,8 @@ function detectThingsInLevel(levelData) {
     if (e.type === 'patrol') found.add('enemy_patrol');
     if (e.type === 'tank') found.add('enemy_tank');
     if (e.type === 'sniper') found.add('enemy_sniper');
+    if (e.type === 'healer') found.add('enemy_healer');
+    if (e.type === 'ghost') found.add('enemy_ghost');
     if (e.canShoot) found.add('enemy_shooting');
   }
   if ((levelData.barrels || []).length > 0) found.add('barrel');
@@ -269,17 +194,15 @@ function showIntroOverlay(newIds, onDone) {
     card.className = 'intro-card';
     card.style.animationDelay = `${0.3 + i * 0.15}s`;
 
-    // Preview canvas
+    // Preview canvas — use actual game draw functions
     const cvs = document.createElement('canvas');
-    cvs.width = 64;
-    cvs.height = 64;
-    cvs.className = 'bestiary-preview';
-    cvs.style.width = '64px';
-    cvs.style.height = '64px';
+    cvs.width = 80;
+    cvs.height = 80;
+    cvs.className = 'intro-preview';
     const c = cvs.getContext('2d');
     c.fillStyle = '#0a0a12';
-    c.fillRect(0, 0, 64, 64);
-    def.draw(c, 32, 32);
+    c.fillRect(0, 0, 80, 80);
+    drawGamePreview(c, id);
     card.appendChild(cvs);
 
     // Name
@@ -329,8 +252,6 @@ function showIntroOverlay(newIds, onDone) {
 
   document.addEventListener('keydown', onKey, { once: false });
   screen.addEventListener('click', onClick, { once: false });
-
-  // Self-cleanup: when close fires, listeners are removed above
 }
 
 // ---- Main export ----

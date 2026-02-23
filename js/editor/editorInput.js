@@ -9,11 +9,12 @@
  *   Delete/Backspace - delete selected
  *   Ctrl+Z / Ctrl+Y - undo / redo
  */
-import { W, H } from '../core/constants.js';
+import { W, H, PRISM_UNIT_W, PRISM_MAX_SEGMENTS } from '../core/constants.js';
 import { pushSnapshot, undo, redo } from './editorHistory.js';
+import { worldToLocal } from '../objects/prism.js';
 
 const HIT_RADIUS = {
-  enemy: 14, prism: 22, barrel: 12, portal: 18, apple: 10, player: 16,
+  enemy: 14, barrel: 12, portal: 18, apple: 10, player: 16,
 };
 
 function hitTest(ld, mx, my) {
@@ -27,7 +28,14 @@ function hitTest(ld, mx, my) {
   }
   for (let i = (ld.prisms || []).length - 1; i >= 0; i--) {
     const p = ld.prisms[i];
-    if (p.x != null && Math.hypot(mx - p.x, my - p.y) < HIT_RADIUS.prism) return { kind: 'prism', index: i };
+    if (p.x == null) continue;
+    const pw = p.w || 40, ph = p.h || 12;
+    const maxR = Math.hypot(pw, ph) / 2 + 6;
+    if (Math.hypot(mx - p.x, my - p.y) > maxR) continue;
+    const local = worldToLocal(mx, my, { x: p.x, y: p.y, angle: p.angle || 0 });
+    if (Math.abs(local.x) <= pw / 2 + 6 && Math.abs(local.y) <= ph / 2 + 6) {
+      return { kind: 'prism', index: i };
+    }
   }
   for (let i = (ld.barrels || []).length - 1; i >= 0; i--) {
     const b = ld.barrels[i];
@@ -68,6 +76,7 @@ export function initEditorInput(editorCanvas, state, onUpdate) {
   let stretchStartX = 0;
   let stretchStartW = 40;
   let stretchStartH = 12;
+  let prismDragging = false; // drag-to-create long prism
 
   function canvasCoords(e) {
     const r = editorCanvas.getBoundingClientRect();
@@ -86,13 +95,35 @@ export function initEditorInput(editorCanvas, state, onUpdate) {
     state.snapX = snap(x);
     state.snapY = snap(y);
 
+    // Prism drag-to-create: compute segment count from distance
+    if (prismDragging && state.tool === 'prism') {
+      const angle = state.placementAngle || 0;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      const dx = x - state.prismDragAnchorX;
+      const dy = y - state.prismDragAnchorY;
+      const proj = dx * cos + dy * sin;
+      const projDist = Math.abs(proj);
+      if (projDist > 5) state.prismDragDir = proj >= 0 ? 1 : -1;
+      const rawSeg = Math.round(projDist / PRISM_UNIT_W);
+      state.prismDragSegments = Math.max(1, Math.min(PRISM_MAX_SEGMENTS, rawSeg + 1));
+      onUpdate();
+      return;
+    }
+
     if (stretching && state.selected && state.selected.kind === 'prism') {
-      // Stretch prism: horizontal drag changes width
       const p = state.levelData.prisms[state.selected.index];
       if (p) {
         const dx = x - stretchStartX;
-        p.w = Math.max(20, Math.round(stretchStartW + dx));
-        p.h = Math.max(6, Math.round(stretchStartH + (y - dragOffsetY) * 0.3));
+        const dy = y - dragOffsetY;
+        if ((p.segments || 1) > 1) {
+          const rawSeg = Math.round(Math.abs(stretchStartW + dx) / PRISM_UNIT_W);
+          p.segments = Math.max(1, Math.min(PRISM_MAX_SEGMENTS, rawSeg));
+          p.w = p.segments * PRISM_UNIT_W;
+        } else {
+          p.w = Math.max(20, Math.min(200, Math.round(stretchStartW + dx)));
+        }
+        p.h = Math.max(6, Math.min(60, Math.round(stretchStartH + dy)));
         onUpdate();
       }
       return;
@@ -109,6 +140,12 @@ export function initEditorInput(editorCanvas, state, onUpdate) {
   function onMouseDown(e) {
     if (e.button === 2) {
       e.preventDefault();
+      if (prismDragging) {
+        prismDragging = false;
+        state.prismDragActive = false;
+        onUpdate();
+        return;
+      }
       const { x, y } = canvasCoords(e);
       const hit = hitTest(state.levelData, x, y);
       if (hit && hit.kind !== 'player') {
@@ -185,16 +222,18 @@ export function initEditorInput(editorCanvas, state, onUpdate) {
       if (!ld.enemies) ld.enemies = [];
       ld.enemies.push({
         type: state.enemySubtype || 'basic', x: sx, y: sy,
-        hp: state.enemySubtype === 'tank' ? 4 : 1,
-        canShoot: state.enemySubtype !== 'patrol',
+        hp: state.enemySubtype === 'tank' ? 4 : (state.enemySubtype === 'healer' || state.enemySubtype === 'ghost') ? 2 : 1,
+        canShoot: state.enemySubtype !== 'patrol' && state.enemySubtype !== 'healer',
       });
     } else if (state.tool === 'prism') {
-      if (!ld.prisms) ld.prisms = [];
-      ld.prisms.push({
-        type: state.prismSubtype || 'static', x: sx, y: sy,
-        angle: 0, splitCount: 2, w: 40, h: 12,
-        hp: state.prismSubtype === 'destructible' ? 3 : undefined,
-      });
+      // Start drag-to-create (finalized on mouseup)
+      prismDragging = true;
+      state.prismDragActive = true;
+      state.prismDragAnchorX = sx;
+      state.prismDragAnchorY = sy;
+      state.prismDragSegments = 1;
+      onUpdate();
+      return;
     } else if (state.tool === 'barrel') {
       if (!ld.barrels) ld.barrels = [];
       ld.barrels.push({ x: sx, y: sy });
@@ -219,6 +258,29 @@ export function initEditorInput(editorCanvas, state, onUpdate) {
 
   function onMouseUp(e) {
     if (e.button === 0) {
+      if (prismDragging && state.tool === 'prism') {
+        const ld = state.levelData;
+        if (!ld.prisms) ld.prisms = [];
+        pushSnapshot();
+        const segments = state.prismDragSegments;
+        const halfW = (segments * PRISM_UNIT_W) / 2;
+        const dir = state.prismDragDir || 1;
+        const pAngle = state.placementAngle || 0;
+        ld.prisms.push({
+          type: state.prismSubtype || 'static',
+          x: state.prismDragAnchorX + Math.cos(pAngle) * dir * halfW,
+          y: state.prismDragAnchorY + Math.sin(pAngle) * dir * halfW,
+          angle: pAngle,
+          splitCount: 2,
+          segments,
+          w: segments * PRISM_UNIT_W,
+          h: 12,
+          hp: state.prismSubtype === 'destructible' ? 3 : undefined,
+        });
+        prismDragging = false;
+        state.prismDragActive = false;
+        onUpdate();
+      }
       dragging = false;
       stretching = false;
     }
@@ -226,13 +288,22 @@ export function initEditorInput(editorCanvas, state, onUpdate) {
 
   function onContextMenu(e) { e.preventDefault(); }
 
-  // Mouse wheel: rotate selected entity
+  // Mouse wheel: rotate placement preview or selected entity
   function onWheel(e) {
+    // Placement mode: adjust pre-placement angle (prism tool)
+    if (state.tool === 'prism' && !state.selected) {
+      e.preventDefault();
+      const step = e.shiftKey ? (Math.PI / 36) : (Math.PI / 12); // 5° or 15°
+      state.placementAngle = (state.placementAngle || 0) + (e.deltaY > 0 ? step : -step);
+      onUpdate();
+      return;
+    }
+
     if (!state.selected) return;
     const sel = state.selected;
     const ld = state.levelData;
 
-    // Rotate prisms
+    // Rotate selected prisms
     if (sel.kind === 'prism') {
       e.preventDefault();
       const p = ld.prisms[sel.index];

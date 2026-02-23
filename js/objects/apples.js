@@ -34,15 +34,15 @@ export function drawApple(a) {
   ctx.shadowColor = '#ff4444';
   ctx.shadowBlur = 6 + Math.sin(a.bobPhase * 2) * 3;
   // Stem
-  drawPixelRect(cx - 1, cy - 8, 2, 4, '#55aa33');
-  drawPixelRect(cx + 1, cy - 7, 2, 2, '#44dd22');
+  drawPixelRect(cx - 2, cy - 12, 3, 6, '#55aa33');
+  drawPixelRect(cx + 2, cy - 11, 3, 3, '#44dd22');
   // Body
-  drawPixelRect(cx - 4, cy - 4, 8, 2, '#ff2222');
-  drawPixelRect(cx - 5, cy - 2, 10, 4, '#ff3333');
-  drawPixelRect(cx - 4, cy + 2, 8, 2, '#cc2222');
-  drawPixelRect(cx - 2, cy + 4, 4, 2, '#aa1111');
+  drawPixelRect(cx - 6, cy - 6, 12, 3, '#ff2222');
+  drawPixelRect(cx - 8, cy - 3, 15, 6, '#ff3333');
+  drawPixelRect(cx - 6, cy + 3, 12, 3, '#cc2222');
+  drawPixelRect(cx - 3, cy + 6, 6, 3, '#aa1111');
   // Highlight
-  drawPixelRect(cx - 3, cy - 2, 2, 2, '#ff8888');
+  drawPixelRect(cx - 5, cy - 3, 3, 3, '#ff8888');
   ctx.shadowBlur = 0;
   ctx.restore();
 }

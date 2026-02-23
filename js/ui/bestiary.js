@@ -17,6 +17,10 @@ const BESTIARY_DATA = [
     desc: '体型巨大，拥有4点生命值。发射紫色高伤害弹丸。', drawPreview: drawTankEnemy },
   { id: 'sniper', category: 'enemy', name: '狙击敌人', unlockLevel: 5, color: '#ffcc00',
     desc: '会瞄准玩家发射高速子弹，有红色激光瞄准线预警。', drawPreview: drawSniperEnemy },
+  { id: 'healer', category: 'enemy', name: '医疗兵', unlockLevel: 13, color: '#44cc88',
+    desc: '绿色敌人，定期治愈附近盟友。不会射击但非常烦人。', drawPreview: drawHealerEnemy },
+  { id: 'ghost', category: 'enemy', name: '幽灵', unlockLevel: 15, color: '#44ddcc',
+    desc: '会在显形与隐形之间切换，隐形时无敌。', drawPreview: drawGhostEnemy },
 
   // 道具
   { id: 'barrel', category: 'item', name: '爆炸桶', unlockLevel: 3, color: '#ff8822',
@@ -178,6 +182,32 @@ function drawSniperEnemy(cvs) {
   c.strokeStyle = '#ff000088'; c.lineWidth = 1;
   c.beginPath(); c.moveTo(42, 32); c.lineTo(62, 32); c.stroke();
   c.shadowBlur = 0;
+}
+
+function drawHealerEnemy(cvs) {
+  const c = cvs.getContext('2d');
+  c.shadowColor = '#44cc88'; c.shadowBlur = 10;
+  c.fillStyle = '#228855'; fc(c, 32, 32, 12);
+  c.fillStyle = '#44cc88'; fc(c, 32, 32, 9);
+  c.shadowBlur = 0;
+  // White cross
+  c.fillStyle = '#ffffff';
+  c.fillRect(30, 24, 4, 16);
+  c.fillRect(24, 30, 16, 4);
+}
+
+function drawGhostEnemy(cvs) {
+  const c = cvs.getContext('2d');
+  c.shadowColor = '#44ddcc'; c.shadowBlur = 10;
+  c.globalAlpha = 0.6;
+  c.fillStyle = '#228877'; fc(c, 32, 32, 12);
+  c.fillStyle = '#44ddcc'; fc(c, 32, 32, 9);
+  c.shadowBlur = 0;
+  c.globalAlpha = 1;
+  c.strokeStyle = '#44ddcc44'; c.lineWidth = 1;
+  c.setLineDash([3, 3]);
+  c.beginPath(); c.arc(32, 32, 14, 0, Math.PI * 2); c.stroke();
+  c.setLineDash([]);
 }
 
 function drawBarrel(cvs) {

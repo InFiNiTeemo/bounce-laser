@@ -1,6 +1,6 @@
 /**
  * enemies.js — Enemy spawning, drawing, and AI logic.
- * Handles all enemy types: basic, patrol, tank, and sniper.
+ * Handles all enemy types: basic, patrol, tank, sniper, healer, and ghost.
  */
 import { ctx, drawPixelRect, drawPixelCircle } from '../core/render.js';
 import { W, H, COLORS, ENEMY_COLORS } from '../core/constants.js';
@@ -57,6 +57,7 @@ export function spawnEnemies() {
       hp: 1, maxHp: 1, canShoot: false, shootTimer: 999,
       flashTimer: 0, bobPhase: Math.random() * Math.PI * 2,
       moveVx: Math.cos(angle) * speed, moveVy: Math.sin(angle) * speed,
+      chaseTimer: 4 + Math.random() * 3,
     });
   }
 
@@ -89,7 +90,9 @@ export function drawEnemy(e) {
 
   // Flash white on hit — all types
   if (e.flashTimer > 0) {
+    if (e.type === 'ghost') ctx.globalAlpha = e.fadeAlpha;
     drawPixelCircle(e.x, e.y + bob, e.size + 2, '#ffffff');
+    if (e.type === 'ghost') ctx.globalAlpha = 1;
     return;
   }
 
@@ -99,6 +102,10 @@ export function drawEnemy(e) {
     drawEnemyTank(e, bob);
   } else if (e.type === 'sniper') {
     drawEnemySniper(e, bob);
+  } else if (e.type === 'healer') {
+    drawEnemyHealer(e, bob);
+  } else if (e.type === 'ghost') {
+    drawEnemyGhost(e, bob);
   } else {
     drawEnemyBasic(e, bob);
   }
@@ -201,8 +208,116 @@ function drawEnemySniper(e, bob) {
   }
 }
 
+function drawEnemyHealer(e, bob) {
+  const C = ENEMY_COLORS.healer;
+  // Healing pulse ring
+  if (e.healPulseTimer > 0) {
+    const progress = 1 - e.healPulseTimer / 0.5;
+    const r = e.size + progress * (e.healRange - e.size);
+    ctx.globalAlpha = 0.3 * (1 - progress);
+    ctx.strokeStyle = C.body;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y + bob, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  // Diamond body
+  const s = e.size;
+  const cy = e.y + bob;
+  ctx.save();
+  ctx.shadowColor = C.body;
+  ctx.shadowBlur = 6;
+  ctx.fillStyle = C.dark;
+  ctx.beginPath();
+  ctx.moveTo(e.x, cy - s);
+  ctx.lineTo(e.x + s, cy);
+  ctx.lineTo(e.x, cy + s);
+  ctx.lineTo(e.x - s, cy);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = C.body;
+  ctx.beginPath();
+  ctx.moveTo(e.x, cy - s + 3);
+  ctx.lineTo(e.x + s - 3, cy);
+  ctx.lineTo(e.x, cy + s - 3);
+  ctx.lineTo(e.x - s + 3, cy);
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+  // White cross (medical symbol)
+  drawPixelRect(e.x - 1, cy - 5, 2, 10, '#ffffff');
+  drawPixelRect(e.x - 5, cy - 1, 10, 2, '#ffffff');
+  // Eyes
+  drawPixelRect(e.x - 5, cy - 4, 3, 3, C.eye);
+  drawPixelRect(e.x + 3, cy - 4, 3, 3, C.eye);
+  // HP bar
+  if (e.maxHp > 1) {
+    const bw = 20, ratio = e.hp / e.maxHp;
+    drawPixelRect(e.x - bw / 2, cy - s - 8, bw, 3, '#003322');
+    drawPixelRect(e.x - bw / 2, cy - s - 8, bw * ratio, 3, C.body);
+  }
+}
+
+function drawEnemyGhost(e, bob) {
+  const C = ENEMY_COLORS.ghost;
+  ctx.globalAlpha = e.fadeAlpha;
+  const s = e.size;
+  const cy = e.y + bob;
+  ctx.save();
+  ctx.shadowColor = C.body;
+  ctx.shadowBlur = 8 * e.fadeAlpha;
+  // Ghost body: dome top + wavy bottom
+  ctx.fillStyle = C.dark;
+  ctx.beginPath();
+  ctx.arc(e.x, cy - 2, s, Math.PI, 0); // dome top
+  // Wavy bottom tail
+  const wave = Math.sin(e.bobPhase * 2) * 2;
+  ctx.lineTo(e.x + s, cy + s - 2);
+  ctx.lineTo(e.x + s * 0.6, cy + s - 5 + wave);
+  ctx.lineTo(e.x + s * 0.2, cy + s - 2);
+  ctx.lineTo(e.x - s * 0.2, cy + s - 5 - wave);
+  ctx.lineTo(e.x - s * 0.6, cy + s - 2);
+  ctx.lineTo(e.x - s, cy + s - 2);
+  ctx.closePath();
+  ctx.fill();
+  // Inner lighter body
+  ctx.fillStyle = C.body;
+  ctx.beginPath();
+  ctx.arc(e.x, cy - 2, s - 3, Math.PI, 0);
+  ctx.lineTo(e.x + s - 3, cy + s - 5);
+  ctx.lineTo(e.x + s * 0.5, cy + s - 7 + wave);
+  ctx.lineTo(e.x, cy + s - 5);
+  ctx.lineTo(e.x - s * 0.5, cy + s - 7 - wave);
+  ctx.lineTo(e.x - s + 3, cy + s - 5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.restore();
+  // Eyes — larger, glowing
+  drawPixelRect(e.x - 5, cy - 4, 4, 4, C.eye);
+  drawPixelRect(e.x + 2, cy - 4, 4, 4, C.eye);
+  drawPixelRect(e.x - 4, cy - 3, 2, 2, '#88ffee');
+  drawPixelRect(e.x + 3, cy - 3, 2, 2, '#88ffee');
+  // Gun barrel
+  if (e.canShoot) {
+    const a = Math.atan2(player.y - e.y, player.x - e.x);
+    const gx = e.x + Math.cos(a) * (s + 5);
+    const gy = cy + Math.sin(a) * (s + 5);
+    drawPixelRect(gx - 2, gy - 2, 4, 4, C.dark);
+  }
+  // HP bar
+  if (e.maxHp > 1) {
+    const bw = 20, ratio = e.hp / e.maxHp;
+    drawPixelRect(e.x - bw / 2, cy - s - 8, bw, 3, '#002233');
+    drawPixelRect(e.x - bw / 2, cy - s - 8, bw * ratio, 3, C.body);
+  }
+  ctx.globalAlpha = 1;
+}
+
 export function updateEnemyAI(e, dt) {
-  // Patrol movement — bounce off edges
+  // Patrol movement — bounce off edges and player
   if (e.type === 'patrol') {
     e.x += e.moveVx;
     e.y += e.moveVy;
@@ -210,6 +325,43 @@ export function updateEnemyAI(e, dt) {
     if (e.y < 40 || e.y > H - 40) e.moveVy *= -1;
     e.x = Math.max(20, Math.min(W - 20, e.x));
     e.y = Math.max(20, Math.min(H - 20, e.y));
+    // Periodically chase player
+    e.chaseTimer -= dt;
+    if (e.chaseTimer <= 0) {
+      e.chaseTimer = 4 + Math.random() * 3;
+      const a = Math.atan2(player.y - e.y, player.x - e.x);
+      const spd = Math.hypot(e.moveVx, e.moveVy);
+      e.moveVx = Math.cos(a) * spd;
+      e.moveVy = Math.sin(a) * spd;
+    }
+    // Bounce off player
+    const dist = Math.hypot(e.x - player.x, e.y - player.y);
+    if (dist < e.size + player.size) {
+      const nx = (e.x - player.x) / (dist || 1);
+      const ny = (e.y - player.y) / (dist || 1);
+      e.x = player.x + nx * (e.size + player.size + 2);
+      e.y = player.y + ny * (e.size + player.size + 2);
+      const spd = Math.hypot(e.moveVx, e.moveVy);
+      e.moveVx = nx * spd;
+      e.moveVy = ny * spd;
+    }
+  }
+
+  // Healer — periodic heal pulse
+  if (e.type === 'healer') {
+    e.healTimer -= dt;
+    if (e.healPulseTimer > 0) e.healPulseTimer -= dt;
+    if (e.healTimer <= 0) {
+      e.healTimer = 5 + Math.random() * 2;
+      e.healPulseTimer = 0.5;
+      for (const ally of game.enemies) {
+        if (ally === e) continue;
+        if (Math.hypot(ally.x - e.x, ally.y - e.y) <= e.healRange && ally.hp < ally.maxHp) {
+          ally.hp = Math.min(ally.maxHp, ally.hp + 1);
+          ally.flashTimer = 0.08;
+        }
+      }
+    }
   }
 
   // Sniper charge-up mechanic
@@ -222,7 +374,7 @@ export function updateEnemyAI(e, dt) {
         game.enemyBullets.push({
           x: e.x, y: e.y,
           vx: Math.cos(a) * 6, vy: Math.sin(a) * 6,
-          life: 200, lastPortal: null, bulletType: 'sniper'
+          life: 200, lastPortal: null, bulletType: 'sniper', hp: 2, damage: 2
         });
         e.shootTimer = 5 + Math.random() * 3;
       }
@@ -247,8 +399,57 @@ export function updateEnemyAI(e, dt) {
       });
     }
   }
+  // Ghost — phase in/out
+  else if (e.type === 'ghost') {
+    e.phaseTimer -= dt;
+    if (e.visible) {
+      if (e.phaseTimer <= 0.3) {
+        e.fadeAlpha = Math.max(0, e.phaseTimer / 0.3);
+      } else {
+        e.fadeAlpha = 1;
+      }
+      if (e.phaseTimer <= 0) {
+        e.visible = false;
+        e.phaseTimer = 2.5 + Math.random();
+        e.fadeAlpha = 0;
+        // Teleport to new position
+        let nx, ny, attempts = 0;
+        do {
+          nx = 40 + Math.random() * (W - 80);
+          ny = 40 + Math.random() * (H - 80);
+          attempts++;
+        } while (attempts < 30 && Math.hypot(nx - player.x, ny - player.y) < 80);
+        e.x = nx;
+        e.y = ny;
+      }
+      // Shoot when visible
+      if (e.canShoot) {
+        e.shootTimer -= dt;
+        if (e.shootTimer <= 0) {
+          e.shootTimer = 3 + Math.random() * 2;
+          const a = Math.atan2(player.y - e.y, player.x - e.x);
+          game.enemyBullets.push({
+            x: e.x, y: e.y,
+            vx: Math.cos(a) * 3.5, vy: Math.sin(a) * 3.5,
+            life: 200, lastPortal: null, bulletType: 'ghost'
+          });
+        }
+      }
+    } else {
+      if (e.phaseTimer <= 0.3) {
+        e.fadeAlpha = Math.min(1, 1 - e.phaseTimer / 0.3);
+      } else {
+        e.fadeAlpha = 0;
+      }
+      if (e.phaseTimer <= 0) {
+        e.visible = true;
+        e.phaseTimer = 3 + Math.random();
+        e.fadeAlpha = 1;
+      }
+    }
+  }
   // Basic shooting
-  else if (e.type !== 'patrol' && e.type !== 'sniper' && e.canShoot) {
+  else if (e.type !== 'patrol' && e.type !== 'sniper' && e.type !== 'healer' && e.canShoot) {
     e.shootTimer -= dt;
     if (e.shootTimer <= 0) {
       e.shootTimer = 2.5 + Math.random() * 3;

@@ -2,7 +2,7 @@
  * editorRender.js - Renders the editor canvas using game draw functions
  */
 import { ctx, setCtx, drawBackground } from '../core/render.js';
-import { W, H } from '../core/constants.js';
+import { W, H, PRISM_UNIT_W } from '../core/constants.js';
 import { drawEnemy } from '../entities/enemies.js';
 import { drawPrism } from '../objects/prism.js';
 import { drawBarrel } from '../objects/barrels.js';
@@ -75,6 +75,7 @@ export function renderEditor(editorCtx, state) {
     if (p.x != null) {
       drawPrism({
         x: p.x, y: p.y, w: p.w || 40, h: p.h || 12,
+        segments: p.segments || 1,
         angle: p.angle || 0, type: p.type || 'static',
         hp: p.hp || 3, maxHp: p.hp || 3,
         flashTimer: 0, glowPhase: performance.now() / 500,
@@ -139,6 +140,17 @@ export function renderEditor(editorCtx, state) {
       }
     } else if (sel.kind === 'player') {
       editorCtx.strokeRect(ps.x - 18, ps.y - 18, 36, 36);
+    } else if (sel.kind === 'prism') {
+      const p = ld.prisms[sel.index];
+      if (p) {
+        editorCtx.save();
+        editorCtx.translate(p.x, p.y);
+        editorCtx.rotate(p.angle || 0);
+        const hw = ((p.w || 40) / 2) + 4;
+        const hh = ((p.h || 12) / 2) + 4;
+        editorCtx.strokeRect(-hw, -hh, hw * 2, hh * 2);
+        editorCtx.restore();
+      }
     } else {
       const entity = getEntityBySelection(ld, sel);
       if (entity) {
@@ -160,20 +172,56 @@ export function renderEditor(editorCtx, state) {
       const sub = state.enemySubtype;
       drawEnemy({
         type: sub, x: gx, y: gy,
-        size: sub === 'tank' ? 16 : (sub === 'sniper' ? 10 : 12),
+        size: sub === 'tank' ? 16 : (sub === 'sniper' ? 10 : (sub === 'healer' || sub === 'ghost') ? 11 : 12),
         hp: 1, maxHp: 1, canShoot: false,
         flashTimer: 0, bobPhase: 0,
         moveVx: 1, moveVy: 0,
         charging: false, chargeTimer: 0, shootTimer: 999,
+        healPulseTimer: 0, healRange: 120,
+        fadeAlpha: 1, visible: true,
       });
     } else if (state.tool === 'prism') {
-      drawPrism({
-        x: gx, y: gy, w: 40, h: 12,
-        angle: 0, type: state.prismSubtype || 'static',
-        hp: 3, maxHp: 3, flashTimer: 0,
-        glowPhase: performance.now() / 500,
-        rotSpeed: 0, splitCount: 2,
-      });
+      if (state.prismDragActive) {
+        // Drag-to-create preview — extends from anchor toward mouse
+        const segments = state.prismDragSegments || 1;
+        const halfW = (segments * PRISM_UNIT_W) / 2;
+        const dir = state.prismDragDir || 1;
+        const pAngle = state.placementAngle || 0;
+        const cx = state.prismDragAnchorX + Math.cos(pAngle) * dir * halfW;
+        const cy = state.prismDragAnchorY + Math.sin(pAngle) * dir * halfW;
+        drawPrism({
+          x: cx, y: cy,
+          w: segments * PRISM_UNIT_W, h: 12,
+          segments,
+          angle: pAngle, type: state.prismSubtype || 'static',
+          hp: 3, maxHp: 3, flashTimer: 0,
+          glowPhase: performance.now() / 500,
+          rotSpeed: 0, splitCount: 2,
+        });
+        // Segment count label
+        editorCtx.globalAlpha = 1;
+        editorCtx.font = '7px "Press Start 2P"';
+        editorCtx.fillStyle = '#aa44ff';
+        editorCtx.textAlign = 'center';
+        editorCtx.fillText(segments + '\u6BB5', cx, cy - 20);
+        editorCtx.globalAlpha = 0.4;
+      } else {
+        drawPrism({
+          x: gx, y: gy, w: PRISM_UNIT_W, h: 12,
+          segments: 1,
+          angle: state.placementAngle || 0, type: state.prismSubtype || 'static',
+          hp: 3, maxHp: 3, flashTimer: 0,
+          glowPhase: performance.now() / 500,
+          rotSpeed: 0, splitCount: 2,
+        });
+        if (state.placementAngle) {
+          editorCtx.font = '7px "Press Start 2P"';
+          editorCtx.fillStyle = '#aa44ff';
+          editorCtx.textAlign = 'center';
+          const deg = Math.round((state.placementAngle * 180 / Math.PI) % 360 + 360) % 360;
+          editorCtx.fillText(deg + '\u00B0', gx, gy - 20);
+        }
+      }
     } else if (state.tool === 'barrel') {
       drawBarrel({ x: gx, y: gy, size: 10, glowPhase: 0, exploded: false });
     } else if (state.tool === 'portal') {
@@ -226,9 +274,9 @@ function getEntityBySelection(ld, sel) {
 
 function getEntitySize(kind, entity) {
   if (kind === 'enemy') {
-    return entity.type === 'tank' ? 16 : (entity.type === 'sniper' ? 10 : 12);
+    return entity.type === 'tank' ? 16 : (entity.type === 'sniper' ? 10 : (entity.type === 'healer' || entity.type === 'ghost') ? 11 : 12);
   }
-  if (kind === 'prism') return 20;
+  if (kind === 'prism') return Math.max((entity.w || 40) / 2, (entity.h || 12) / 2, 20);
   if (kind === 'barrel') return 10;
   if (kind === 'apple') return 8;
   return 14;

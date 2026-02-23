@@ -21,6 +21,8 @@ export const game = {
   screenShake: 0,
   levelEnemies: 0,
   killedEnemies: 0,
+  bounceKills: 0,
+  shieldReflectKills: 0,
   shieldActive: false,
   shieldEnergy: 100,
   shieldMaxEnergy: 100,
@@ -36,6 +38,8 @@ export const game = {
   shieldRegenRate: 15,
   walls: [],
   apples: [],
+  gravityWells: [],
+  amplifiers: [],
   paused: false,
   isPlayTest: false,
   customLevelData: null,
@@ -45,6 +49,28 @@ export const game = {
   tutorialStep: 0,
   tutorialStepTimer: 0,
   tutorialShieldTime: 0,
+  tutorialShieldReflects: 0,
+  tutorialBulletCounters: 0,
+  shieldCounter: false,
+  secondLife: false,
+  secondLifeUsed: false,
+  ammoRecoveryChance: 0,
+  scatterLevel: 0,
+  magnetLevel: 0,
+  explosiveLevel: 0,
+  chainLevel: 0,
+  critChance: 0,
+  chainLightnings: [],
+  bulletLifeBonus: 0,
+  ammoRecoveryBonus: 0,
+  shieldDrainMult: 1.0,
+  explosionDmgBonus: 0,
+  explosionRadiusMult: 1.0,
+  prismSplitBonus: 0,
+  prismPiercing: false,
+  heavyBullets: false,
+  secondLifeRing: null,
+  secondLifeFlash: 0,
 };
 
 export const player = {
@@ -67,6 +93,24 @@ export function saveGameProgress() {
       piercingCount: game.piercingCount,
       bulletDamage: game.bulletDamage,
       shieldRegenRate: game.shieldRegenRate,
+      shieldCounter: game.shieldCounter,
+      secondLife: game.secondLife,
+      ammoRecoveryChance: game.ammoRecoveryChance,
+      scatterLevel: game.scatterLevel,
+      magnetLevel: game.magnetLevel,
+      explosiveLevel: game.explosiveLevel,
+      chainLevel: game.chainLevel,
+      critChance: game.critChance,
+      bulletLifeBonus: game.bulletLifeBonus,
+      ammoRecoveryBonus: game.ammoRecoveryBonus,
+      shieldDrainMult: game.shieldDrainMult,
+      explosionDmgBonus: game.explosionDmgBonus,
+      explosionRadiusMult: game.explosionRadiusMult,
+      prismSplitBonus: game.prismSplitBonus,
+      prismPiercing: game.prismPiercing,
+      heavyBullets: game.heavyBullets,
+      maxBounces: game.maxBounces,
+      shieldMaxEnergy: game.shieldMaxEnergy,
     }));
   } catch (e) {}
 }
@@ -115,7 +159,11 @@ export function initGameState(lvl, score, shots, hp) {
   game.portals = [];
   game.pickups = [];
   game.apples = [];
+  game.gravityWells = [];
+  game.amplifiers = [];
   game.piercingCount = 0;
+  game.secondLifeUsed = false;
+  game.chainLightnings = [];
   player.invincibleTimer = 1;
 }
 
@@ -125,6 +173,25 @@ export function resetGameState() {
   game.shieldRegenRate = 15;
   game.playerMaxHp = 3;
   game.playerHp = 3;
+  game.shieldCounter = false;
+  game.secondLife = false;
+  game.secondLifeUsed = false;
+  game.ammoRecoveryChance = 0;
+  game.scatterLevel = 0;
+  game.magnetLevel = 0;
+  game.explosiveLevel = 0;
+  game.chainLevel = 0;
+  game.critChance = 0;
+  game.bulletLifeBonus = 0;
+  game.ammoRecoveryBonus = 0;
+  game.shieldDrainMult = 1.0;
+  game.explosionDmgBonus = 0;
+  game.explosionRadiusMult = 1.0;
+  game.prismSplitBonus = 0;
+  game.prismPiercing = false;
+  game.heavyBullets = false;
+  game.maxBounces = 3;
+  game.shieldMaxEnergy = 100;
 }
 
 export function resetForNextLevel() {
@@ -137,10 +204,13 @@ export function resetForNextLevel() {
   game.pickups = [];
   game.portals = [];
   game.apples = [];
-  game.shots += 5;
+  game.gravityWells = [];
+  game.amplifiers = [];
+  game.shots += 1;
   game.playerAlive = true;
   game.shieldActive = false;
   game.shieldEnergy = game.shieldMaxEnergy;
   game.shieldCooldown = false;
+  game.secondLifeUsed = false;
   player.invincibleTimer = 1;
 }

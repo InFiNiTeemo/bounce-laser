@@ -107,6 +107,7 @@ export function checkBulletPortalCollision(b) {
       b.x = portal.bx + (b.x - portal.ax);
       b.y = portal.by + (b.y - portal.ay);
       b.lastPortal = portal;
+      b.portalGrace = 8;
       if (b.trail) b.trail = [];
       spawnParticles(portal.ax, portal.ay, PORTAL_COLORS.blue, 6);
       spawnParticles(portal.bx, portal.by, PORTAL_COLORS.orange, 6);
@@ -117,6 +118,7 @@ export function checkBulletPortalCollision(b) {
       b.x = portal.ax + (b.x - portal.bx);
       b.y = portal.ay + (b.y - portal.by);
       b.lastPortal = portal;
+      b.portalGrace = 8;
       if (b.trail) b.trail = [];
       spawnParticles(portal.bx, portal.by, PORTAL_COLORS.orange, 6);
       spawnParticles(portal.ax, portal.ay, PORTAL_COLORS.blue, 6);

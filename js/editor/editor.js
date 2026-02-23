@@ -11,7 +11,8 @@ import { renderEditor } from './editorRender.js';
 import { initEditorInput } from './editorInput.js';
 import { initEditorUI } from './editorUI.js';
 import { initHistory, pushSnapshot, undo, redo } from './editorHistory.js';
-import { saveCustomLevel, getCustomLevels, deleteCustomLevel, exportLevelJSON, importLevelJSON } from './editorStorage.js';
+import { saveCustomLevel, getCustomLevels, deleteCustomLevel, exportLevelJSON, exportAllLevelsJSON, importLevelJSON } from './editorStorage.js';
+import { submitLevel } from '../community/api.js';
 
 // ---- Editor state ----
 
@@ -28,6 +29,12 @@ const state = {
   snapY: 0,
   portalPhase: 0,
   tempPortalA: null,
+  placementAngle: 0,
+  prismDragActive: false,
+  prismDragAnchorX: 0,
+  prismDragAnchorY: 0,
+  prismDragSegments: 1,
+  prismDragDir: 1,
   levelData: null,
 };
 
@@ -44,6 +51,7 @@ function createEmptyLevel() {
   return {
     id: null,
     name: '\u81EA\u5B9A\u4E49\u5173\u5361',
+    fixedLayout: true,
     shots: 10,
     playerSpawn: { x: W / 2, y: H / 2 },
     enemies: [],
@@ -60,31 +68,31 @@ function cloneLevel(ld) {
 
 // ---- Level Picker (shown when clicking "关卡编辑") ----
 
-export function showEditorLevelSelect() {
-  // Hide other screens
-  document.getElementById('startScreen').classList.add('hidden');
-  document.getElementById('gameContainer').classList.add('hidden');
-  document.getElementById('levelSelectScreen').classList.add('hidden');
+const EDITOR_PER_PAGE = 12;
+let editorPage = 0;
 
-  // Build or show the editor select screen
-  let screen = document.getElementById('editorSelectScreen');
-  if (!screen) {
-    screen = document.createElement('div');
-    screen.id = 'editorSelectScreen';
-    screen.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#0a0a12;z-index:100;color:#00ff88;text-align:center;gap:14px;';
-    document.body.appendChild(screen);
-  }
-  screen.classList.remove('hidden');
+function buildEditorLevelSelect() {
+  const screen = document.getElementById('editorSelectScreen');
+  const totalPages = Math.ceil(BUILTIN_LEVELS.length / EDITOR_PER_PAGE);
+  const start = editorPage * EDITOR_PER_PAGE;
+  const end = Math.min(start + EDITOR_PER_PAGE, BUILTIN_LEVELS.length);
 
-  let html = '<div class="screen-title" style="font-size:20px;">\u5173\u5361\u7F16\u8F91</div>';
+  let html = '<div class="screen-title" style="font-size:24px;">\u5173\u5361\u7F16\u8F91</div>';
   html += '<div class="screen-subtitle">LEVEL EDITOR</div>';
-  html += '<div style="font-size:8px;color:#557755;margin-bottom:4px;">\u9009\u62E9\u8981\u7F16\u8F91\u7684\u5173\u5361</div>';
 
-  // Builtin levels grid
+  // Pagination
+  if (totalPages > 1) {
+    html += '<div style="display:flex;justify-content:center;align-items:center;gap:16px;">';
+    html += `<button class="start-btn" id="editorPagePrev" style="font-size:9px;padding:4px 12px;" ${editorPage === 0 ? 'disabled' : ''}>\u25C0</button>`;
+    html += `<span style="font-size:9px;color:#557755;">${editorPage + 1} / ${totalPages}</span>`;
+    html += `<button class="start-btn" id="editorPageNext" style="font-size:9px;padding:4px 12px;" ${editorPage >= totalPages - 1 ? 'disabled' : ''}>\u25B6</button>`;
+    html += '</div>';
+  }
+
+  // Builtin levels grid (current page only)
   html += '<div class="level-grid" style="max-width:400px;">';
-  for (let i = 0; i < BUILTIN_LEVELS.length; i++) {
-    const lvl = BUILTIN_LEVELS[i];
-    html += `<button class="level-btn editor-lvl-btn" data-builtin="${i}" style="font-size:8px;">${lvl.name || (i + 1)}</button>`;
+  for (let i = start; i < end; i++) {
+    html += `<button class="level-btn editor-lvl-btn" data-builtin="${i}" style="font-size:8px;">${i + 1}</button>`;
   }
   html += '</div>';
 
@@ -108,12 +116,18 @@ export function showEditorLevelSelect() {
 
   screen.innerHTML = html;
 
+  // Wire pagination
+  const prevBtn = document.getElementById('editorPagePrev');
+  const nextBtn = document.getElementById('editorPageNext');
+  if (prevBtn) prevBtn.addEventListener('click', () => { editorPage--; buildEditorLevelSelect(); });
+  if (nextBtn) nextBtn.addEventListener('click', () => { editorPage++; buildEditorLevelSelect(); });
+
   // Wire builtin level buttons
   screen.querySelectorAll('.editor-lvl-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const idx = parseInt(btn.dataset.builtin);
       const concrete = materializeLevel(BUILTIN_LEVELS[idx]);
-      concrete.id = null; // Don't overwrite builtin
+      concrete.id = null;
       screen.classList.add('hidden');
       openEditor(concrete);
     });
@@ -140,6 +154,22 @@ export function showEditorLevelSelect() {
     document.getElementById('startScreen').classList.remove('hidden');
     initStartDemo();
   });
+}
+
+export function showEditorLevelSelect() {
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('gameContainer').classList.add('hidden');
+  document.getElementById('levelSelectScreen').classList.add('hidden');
+
+  let screen = document.getElementById('editorSelectScreen');
+  if (!screen) {
+    screen = document.createElement('div');
+    screen.id = 'editorSelectScreen';
+    screen.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;display:flex;flex-direction:column;justify-content:flex-start;align-items:center;background:#0a0a12;z-index:100;color:#00ff88;text-align:center;gap:16px;overflow-y:auto;padding:8vh 0 30px 0;';
+    document.body.appendChild(screen);
+  }
+  screen.classList.remove('hidden');
+  buildEditorLevelSelect();
 }
 
 // ---- Init / Teardown ----
@@ -198,6 +228,7 @@ export function openEditor(levelDataToEdit) {
     onPlayTest: handlePlayTest,
     onCopyJSON: handleCopyJSON,
     onPasteJSON: handlePasteJSON,
+    onExportAll: handleExportAll,
     onUndo: handleUndo,
     onRedo: handleRedo,
     onBack: handleBack,
@@ -248,10 +279,21 @@ function handleNew() {
   if (uiApi) uiApi.syncUI();
 }
 
-function handleSave() {
+async function handleSave() {
   const id = saveCustomLevel(cloneLevel(state.levelData));
   state.levelData.id = id;
-  alert('\u5173\u5361\u5DF2\u4FDD\u5B58\uFF01');
+  // Auto-submit to cloud for admin review
+  const ld = state.levelData;
+  if (ld.enemies && ld.enemies.length > 0 && ld.name) {
+    try {
+      await submitLevel(cloneLevel(ld), '');
+      alert('\u5173\u5361\u5DF2\u4FDD\u5B58\u5E76\u63D0\u4EA4\u5BA1\u6838\uFF01');
+    } catch {
+      alert('\u5173\u5361\u5DF2\u4FDD\u5B58\uFF08\u4E91\u7AEF\u540C\u6B65\u5931\u8D25\uFF0C\u4EC5\u672C\u5730\uFF09');
+    }
+  } else {
+    alert('\u5173\u5361\u5DF2\u4FDD\u5B58\uFF01');
+  }
 }
 
 function handleLoad() {
@@ -330,6 +372,22 @@ function handleCopyJSON() {
   });
 }
 
+function handleExportAll() {
+  const json = exportAllLevelsJSON();
+  const levels = getCustomLevels();
+  if (levels.length === 0) {
+    alert('\u6CA1\u6709\u4FDD\u5B58\u7684\u81EA\u5B9A\u4E49\u5173\u5361\u3002');
+    return;
+  }
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'my_levels_' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 async function handlePasteJSON() {
   let text = '';
   try {
@@ -363,8 +421,7 @@ function handleRedo() {
 
 function handleBack() {
   closeEditor();
-  document.getElementById('startScreen').classList.remove('hidden');
-  initStartDemo();
+  showEditorLevelSelect();
 }
 
 /** Called when returning from play-test */

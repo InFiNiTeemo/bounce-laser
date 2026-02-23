@@ -1,23 +1,25 @@
 /**
- * levels.js - Builtin level definitions (12 levels).
+ * levels.js - Builtin level definitions (24 levels).
  *
  * Schema:
- *   id       - Level number (1-12) or 'custom_<timestamp>'
+ *   id       - Level number (1-24) or 'custom_<timestamp>'
  *   name     - Display name
+ *   fixedLayout - true: use exact x,y positions; false/absent: auto-generate random positions
  *   shots    - Starting ammo
  *   playerSpawn - { x, y } (optional, defaults to center)
- *   enemies  - Array of enemy defs. If x/y present, use exact position; otherwise auto-generate.
- *              Fields: type, hp, canShoot  (optional: x, y)
+ *   enemies  - Array of enemy defs. Fields: type, hp, canShoot  (x, y required when fixedLayout)
  *   prisms   - Array of prism defs.  Fields: type, angle, splitCount  (optional: x,y, rotSpeed, moveVx, moveVy, moveRange, hp)
  *   barrels  - Array of barrel defs. (optional: x, y)
  *   portals  - Array of portal pair defs. (optional: ax, ay, bx, by)
  *   apples   - Array of apple defs.  (optional: x, y)
+ *   gravityWells - Array of gravity well defs. Fields: type ('attract'|'repel'|'pulse')  (optional: x, y, hp)
+ *   amplifiers   - Array of amplifier defs.    Fields: charges  (optional: x, y)
  */
 
 export const BUILTIN_LEVELS = [
   // Level 1 — 初阵: 4 basic enemies, no shooting
   {
-    id: 1, name: '初阵', shots: 10,
+    id: 1, name: '初阵', shots: 5,
     enemies: [
       { type: 'basic', hp: 1, canShoot: false },
       { type: 'basic', hp: 1, canShoot: false },
@@ -29,7 +31,7 @@ export const BUILTIN_LEVELS = [
 
   // Level 2 — 初战: enemies start shooting, patrol enemies appear
   {
-    id: 2, name: '初战', shots: 15,
+    id: 2, name: '初战', shots: 7,
     enemies: [
       { type: 'basic', hp: 1, canShoot: true },
       { type: 'basic', hp: 1, canShoot: true },
@@ -42,7 +44,7 @@ export const BUILTIN_LEVELS = [
 
   // Level 3 — 硝烟: enemies get tougher, barrels appear
   {
-    id: 3, name: '硝烟', shots: 20,
+    id: 3, name: '硝烟', shots: 9,
     enemies: [
       { type: 'basic', hp: 2, canShoot: true },
       { type: 'basic', hp: 2, canShoot: true },
@@ -58,7 +60,7 @@ export const BUILTIN_LEVELS = [
 
   // Level 4 — 棱镜: prisms & tanks appear
   {
-    id: 4, name: '棱镜', shots: 25,
+    id: 4, name: '棱镜', shots: 11,
     enemies: [
       { type: 'basic', hp: 2, canShoot: true },
       { type: 'basic', hp: 2, canShoot: true },
@@ -78,7 +80,7 @@ export const BUILTIN_LEVELS = [
 
   // Level 5 — 狙击: snipers, more barrels, apples
   {
-    id: 5, name: '狙击', shots: 30,
+    id: 5, name: '狙击', shots: 13,
     enemies: [
       { type: 'basic', hp: 2, canShoot: true },
       { type: 'basic', hp: 2, canShoot: true },
@@ -100,7 +102,7 @@ export const BUILTIN_LEVELS = [
 
   // Level 6 — 传送: portals appear, rotating prisms
   {
-    id: 6, name: '传送', shots: 35,
+    id: 6, name: '传送', shots: 15,
     enemies: [
       { type: 'basic', hp: 2, canShoot: true },
       { type: 'basic', hp: 2, canShoot: true },
@@ -124,7 +126,7 @@ export const BUILTIN_LEVELS = [
 
   // Level 7 — 重甲: 2 tanks, 3 prisms with split-3
   {
-    id: 7, name: '重甲', shots: 40,
+    id: 7, name: '重甲', shots: 17,
     enemies: [
       { type: 'basic', hp: 2, canShoot: true },
       { type: 'basic', hp: 2, canShoot: true },
@@ -149,7 +151,7 @@ export const BUILTIN_LEVELS = [
 
   // Level 8 — 乱舞: more prisms, moving type
   {
-    id: 8, name: '乱舞', shots: 45,
+    id: 8, name: '乱舞', shots: 19,
     enemies: [
       { type: 'basic', hp: 2, canShoot: true },
       { type: 'basic', hp: 2, canShoot: true },
@@ -175,7 +177,7 @@ export const BUILTIN_LEVELS = [
 
   // Level 9 — 炼狱: 4 barrels, 4 prisms
   {
-    id: 9, name: '炼狱', shots: 50,
+    id: 9, name: '炼狱', shots: 21,
     enemies: [
       { type: 'basic', hp: 2, canShoot: true },
       { type: 'basic', hp: 2, canShoot: true },
@@ -201,7 +203,7 @@ export const BUILTIN_LEVELS = [
 
   // Level 10 — 双门: 2 snipers, 2 portal pairs, 5 prisms
   {
-    id: 10, name: '双门', shots: 55,
+    id: 10, name: '双门', shots: 23,
     enemies: [
       { type: 'basic', hp: 2, canShoot: true },
       { type: 'basic', hp: 2, canShoot: true },
@@ -230,7 +232,7 @@ export const BUILTIN_LEVELS = [
 
   // Level 11 — 风暴: 5 prisms, intense combat
   {
-    id: 11, name: '风暴', shots: 60,
+    id: 11, name: '风暴', shots: 25,
     enemies: [
       { type: 'basic', hp: 2, canShoot: true },
       { type: 'basic', hp: 2, canShoot: true },
@@ -259,7 +261,7 @@ export const BUILTIN_LEVELS = [
 
   // Level 12 — 终焉: maximum everything
   {
-    id: 12, name: '终焉', shots: 65,
+    id: 12, name: '终焉', shots: 27,
     enemies: [
       { type: 'basic', hp: 2, canShoot: true },
       { type: 'basic', hp: 2, canShoot: true },
@@ -285,5 +287,430 @@ export const BUILTIN_LEVELS = [
     barrels: [{}, {}, {}, {}],
     portals: [{}, {}],
     apples: [{}, {}],
+  },
+
+  // ========== ACT II (Levels 13-18) ==========
+
+  // Level 13 — 回响: gravity wells debut, 3 portals, enemies get 3hp
+  {
+    id: 13, name: '回响', shots: 29,
+    enemies: [
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'patrol', hp: 2, canShoot: true },
+      { type: 'patrol', hp: 2, canShoot: true },
+      { type: 'tank', hp: 5, canShoot: true },
+      { type: 'tank', hp: 5, canShoot: true },
+      { type: 'sniper', hp: 2, canShoot: true },
+      { type: 'healer', hp: 2, canShoot: false },
+    ],
+    prisms: [
+      { type: 'static', splitCount: 3 },
+      { type: 'rotating', splitCount: 3 },
+      { type: 'destructible', splitCount: 3, hp: 4 },
+    ],
+    barrels: [{}, {}, {}],
+    portals: [{}, {}, {}],
+    apples: [{}, {}, {}],
+    gravityWells: [{ type: 'attract' }],
+    amplifiers: [],
+  },
+
+  // Level 14 — 铁壁: 3 tanks, attract + repel gravity wells
+  {
+    id: 14, name: '铁壁', shots: 31,
+    enemies: [
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'patrol', hp: 2, canShoot: true },
+      { type: 'patrol', hp: 2, canShoot: true },
+      { type: 'patrol', hp: 2, canShoot: true },
+      { type: 'tank', hp: 6, canShoot: true },
+      { type: 'tank', hp: 6, canShoot: true },
+      { type: 'tank', hp: 6, canShoot: true },
+      { type: 'sniper', hp: 2, canShoot: true },
+      { type: 'healer', hp: 2, canShoot: false },
+    ],
+    prisms: [
+      { type: 'static', splitCount: 3 },
+      { type: 'rotating', splitCount: 3 },
+      { type: 'moving', splitCount: 3 },
+      { type: 'destructible', splitCount: 3, hp: 4 },
+    ],
+    barrels: [{}, {}, {}, {}],
+    portals: [{}, {}],
+    apples: [{}, {}],
+    gravityWells: [{ type: 'attract' }, { type: 'repel' }],
+    amplifiers: [],
+  },
+
+  // Level 15 — 迷宫: amplifiers debut, many prisms
+  {
+    id: 15, name: '迷宫', shots: 33,
+    enemies: [
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'patrol', hp: 2, canShoot: true },
+      { type: 'patrol', hp: 2, canShoot: true },
+      { type: 'tank', hp: 5, canShoot: true },
+      { type: 'sniper', hp: 2, canShoot: true },
+      { type: 'sniper', hp: 2, canShoot: true },
+      { type: 'healer', hp: 2, canShoot: false },
+      { type: 'ghost', hp: 2, canShoot: true },
+    ],
+    prisms: [
+      { type: 'static', splitCount: 3 },
+      { type: 'static', splitCount: 3 },
+      { type: 'rotating', splitCount: 3 },
+      { type: 'rotating', splitCount: 3 },
+      { type: 'moving', splitCount: 3 },
+      { type: 'destructible', splitCount: 3, hp: 4 },
+      { type: 'destructible', splitCount: 3, hp: 4 },
+    ],
+    barrels: [{}, {}, {}],
+    portals: [{}],
+    apples: [{}, {}, {}],
+    gravityWells: [{ type: 'attract' }],
+    amplifiers: [{ charges: 3 }],
+  },
+
+  // Level 16 — 弹幕: repel well deflects bullet hell
+  {
+    id: 16, name: '弹幕', shots: 35,
+    enemies: [
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'patrol', hp: 2, canShoot: true },
+      { type: 'patrol', hp: 2, canShoot: true },
+      { type: 'patrol', hp: 2, canShoot: true },
+      { type: 'tank', hp: 6, canShoot: true },
+      { type: 'tank', hp: 6, canShoot: true },
+      { type: 'sniper', hp: 2, canShoot: true },
+      { type: 'healer', hp: 2, canShoot: false },
+      { type: 'ghost', hp: 2, canShoot: true },
+    ],
+    prisms: [
+      { type: 'static', splitCount: 3 },
+      { type: 'rotating', splitCount: 3 },
+      { type: 'destructible', splitCount: 3, hp: 4 },
+    ],
+    barrels: [{}, {}, {}, {}, {}],
+    portals: [{}, {}],
+    apples: [{}, {}, {}],
+    gravityWells: [{ type: 'repel' }],
+    amplifiers: [{ charges: 3 }],
+  },
+
+  // Level 17 — 折射: attract+repel wells with limited amplifier
+  {
+    id: 17, name: '折射', shots: 37,
+    enemies: [
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'patrol', hp: 2, canShoot: true },
+      { type: 'patrol', hp: 2, canShoot: true },
+      { type: 'patrol', hp: 2, canShoot: true },
+      { type: 'tank', hp: 6, canShoot: true },
+      { type: 'tank', hp: 6, canShoot: true },
+      { type: 'sniper', hp: 2, canShoot: true },
+      { type: 'sniper', hp: 2, canShoot: true },
+      { type: 'healer', hp: 2, canShoot: false },
+      { type: 'ghost', hp: 2, canShoot: true },
+    ],
+    prisms: [
+      { type: 'rotating', splitCount: 3 },
+      { type: 'rotating', splitCount: 3 },
+      { type: 'moving', splitCount: 3 },
+      { type: 'moving', splitCount: 3 },
+      { type: 'moving', splitCount: 3 },
+      { type: 'destructible', splitCount: 3, hp: 5 },
+    ],
+    barrels: [{}, {}, {}, {}],
+    portals: [{}, {}],
+    apples: [{}, {}],
+    gravityWells: [{ type: 'attract' }, { type: 'repel' }],
+    amplifiers: [{ charges: 2 }],
+  },
+
+  // Level 18 — 包围: 2 attract wells + 2 amplifiers
+  {
+    id: 18, name: '包围', shots: 39,
+    enemies: [
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'basic', hp: 3, canShoot: true },
+      { type: 'patrol', hp: 2, canShoot: true },
+      { type: 'patrol', hp: 2, canShoot: true },
+      { type: 'patrol', hp: 2, canShoot: true },
+      { type: 'patrol', hp: 2, canShoot: true },
+      { type: 'tank', hp: 6, canShoot: true },
+      { type: 'tank', hp: 6, canShoot: true },
+      { type: 'sniper', hp: 2, canShoot: true },
+      { type: 'sniper', hp: 2, canShoot: true },
+      { type: 'healer', hp: 2, canShoot: false },
+      { type: 'healer', hp: 2, canShoot: false },
+      { type: 'ghost', hp: 2, canShoot: true },
+    ],
+    prisms: [
+      { type: 'static', splitCount: 3 },
+      { type: 'rotating', splitCount: 3 },
+      { type: 'moving', splitCount: 3 },
+      { type: 'destructible', splitCount: 3, hp: 5 },
+    ],
+    barrels: [{}, {}, {}, {}, {}],
+    portals: [{}, {}, {}],
+    apples: [{}, {}, {}],
+    gravityWells: [{ type: 'attract' }, { type: 'attract' }],
+    amplifiers: [{ charges: 3 }, { charges: 3 }],
+  },
+
+  // ========== ACT III (Levels 19-24) ==========
+
+  // Level 19 — 混沌: pulse gravity well debut
+  {
+    id: 19, name: '混沌', shots: 41,
+    enemies: [
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'patrol', hp: 3, canShoot: true },
+      { type: 'patrol', hp: 3, canShoot: true },
+      { type: 'patrol', hp: 3, canShoot: true },
+      { type: 'tank', hp: 7, canShoot: true },
+      { type: 'tank', hp: 7, canShoot: true },
+      { type: 'sniper', hp: 2, canShoot: true },
+      { type: 'sniper', hp: 2, canShoot: true },
+      { type: 'healer', hp: 3, canShoot: false },
+      { type: 'ghost', hp: 2, canShoot: true },
+      { type: 'ghost', hp: 2, canShoot: true },
+    ],
+    prisms: [
+      { type: 'rotating', splitCount: 3 },
+      { type: 'rotating', splitCount: 3 },
+      { type: 'moving', splitCount: 3 },
+      { type: 'moving', splitCount: 3 },
+      { type: 'destructible', splitCount: 3, hp: 5 },
+      { type: 'destructible', splitCount: 3, hp: 5 },
+    ],
+    barrels: [{}, {}, {}, {}, {}],
+    portals: [{}, {}, {}],
+    apples: [{}, {}, {}],
+    gravityWells: [{ type: 'attract' }, { type: 'pulse' }],
+    amplifiers: [{ charges: 3 }],
+  },
+
+  // Level 20 — 猎杀: repel+pulse wells, 2 limited amplifiers
+  {
+    id: 20, name: '猎杀', shots: 43,
+    enemies: [
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'patrol', hp: 3, canShoot: true },
+      { type: 'patrol', hp: 3, canShoot: true },
+      { type: 'patrol', hp: 3, canShoot: true },
+      { type: 'tank', hp: 7, canShoot: true },
+      { type: 'tank', hp: 7, canShoot: true },
+      { type: 'sniper', hp: 3, canShoot: true },
+      { type: 'sniper', hp: 3, canShoot: true },
+      { type: 'sniper', hp: 3, canShoot: true },
+      { type: 'sniper', hp: 3, canShoot: true },
+      { type: 'healer', hp: 3, canShoot: false },
+      { type: 'ghost', hp: 3, canShoot: true },
+      { type: 'ghost', hp: 3, canShoot: true },
+    ],
+    prisms: [
+      { type: 'static', splitCount: 3 },
+      { type: 'rotating', splitCount: 3 },
+      { type: 'moving', splitCount: 3 },
+      { type: 'destructible', splitCount: 3, hp: 5 },
+    ],
+    barrels: [{}, {}, {}, {}],
+    portals: [{}, {}],
+    apples: [{}, {}, {}],
+    gravityWells: [{ type: 'repel' }, { type: 'pulse' }],
+    amplifiers: [{ charges: 2 }, { charges: 2 }],
+  },
+
+  // Level 21 — 深渊: 2 attract + 1 pulse well, 2 amplifiers
+  {
+    id: 21, name: '深渊', shots: 45,
+    enemies: [
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'patrol', hp: 3, canShoot: true },
+      { type: 'patrol', hp: 3, canShoot: true },
+      { type: 'patrol', hp: 3, canShoot: true },
+      { type: 'tank', hp: 8, canShoot: true },
+      { type: 'tank', hp: 8, canShoot: true },
+      { type: 'tank', hp: 8, canShoot: true },
+      { type: 'sniper', hp: 3, canShoot: true },
+      { type: 'sniper', hp: 3, canShoot: true },
+      { type: 'healer', hp: 3, canShoot: false },
+      { type: 'healer', hp: 3, canShoot: false },
+      { type: 'ghost', hp: 3, canShoot: true },
+      { type: 'ghost', hp: 3, canShoot: true },
+    ],
+    prisms: [
+      { type: 'static', splitCount: 3 },
+      { type: 'rotating', splitCount: 3 },
+      { type: 'rotating', splitCount: 3 },
+      { type: 'moving', splitCount: 3 },
+      { type: 'destructible', splitCount: 3, hp: 6 },
+      { type: 'destructible', splitCount: 3, hp: 6 },
+    ],
+    barrels: [{}, {}, {}, {}, {}],
+    portals: [{}, {}, {}],
+    apples: [{}, {}, {}],
+    gravityWells: [{ type: 'attract' }, { type: 'attract' }, { type: 'pulse' }],
+    amplifiers: [{ charges: 3 }, { charges: 3 }],
+  },
+
+  // Level 22 — 绝境: tight ammo, pulse+repel wells, limited amplifier
+  {
+    id: 22, name: '绝境', shots: 47,
+    enemies: [
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'basic', hp: 4, canShoot: true },
+      { type: 'patrol', hp: 3, canShoot: true },
+      { type: 'patrol', hp: 3, canShoot: true },
+      { type: 'patrol', hp: 3, canShoot: true },
+      { type: 'patrol', hp: 3, canShoot: true },
+      { type: 'tank', hp: 8, canShoot: true },
+      { type: 'tank', hp: 8, canShoot: true },
+      { type: 'sniper', hp: 3, canShoot: true },
+      { type: 'sniper', hp: 3, canShoot: true },
+      { type: 'healer', hp: 3, canShoot: false },
+      { type: 'healer', hp: 3, canShoot: false },
+      { type: 'ghost', hp: 3, canShoot: true },
+      { type: 'ghost', hp: 3, canShoot: true },
+    ],
+    prisms: [
+      { type: 'rotating', splitCount: 3 },
+      { type: 'rotating', splitCount: 3 },
+      { type: 'moving', splitCount: 3 },
+      { type: 'moving', splitCount: 3 },
+      { type: 'destructible', splitCount: 3, hp: 6 },
+    ],
+    barrels: [{}, {}, {}, {}, {}, {}],
+    portals: [{}, {}, {}],
+    apples: [{}, {}, {}, {}],
+    gravityWells: [{ type: 'pulse' }, { type: 'repel' }],
+    amplifiers: [{ charges: 2 }],
+  },
+
+  // Level 23 — 终末: 2 pulse + 1 attract, 2 amplifiers
+  {
+    id: 23, name: '终末', shots: 49,
+    enemies: [
+      { type: 'basic', hp: 5, canShoot: true },
+      { type: 'basic', hp: 5, canShoot: true },
+      { type: 'basic', hp: 5, canShoot: true },
+      { type: 'basic', hp: 5, canShoot: true },
+      { type: 'basic', hp: 5, canShoot: true },
+      { type: 'basic', hp: 5, canShoot: true },
+      { type: 'patrol', hp: 3, canShoot: true },
+      { type: 'patrol', hp: 3, canShoot: true },
+      { type: 'patrol', hp: 3, canShoot: true },
+      { type: 'patrol', hp: 3, canShoot: true },
+      { type: 'tank', hp: 8, canShoot: true },
+      { type: 'tank', hp: 8, canShoot: true },
+      { type: 'tank', hp: 8, canShoot: true },
+      { type: 'sniper', hp: 3, canShoot: true },
+      { type: 'sniper', hp: 3, canShoot: true },
+      { type: 'sniper', hp: 3, canShoot: true },
+      { type: 'healer', hp: 3, canShoot: false },
+      { type: 'healer', hp: 3, canShoot: false },
+      { type: 'ghost', hp: 3, canShoot: true },
+      { type: 'ghost', hp: 3, canShoot: true },
+      { type: 'ghost', hp: 3, canShoot: true },
+    ],
+    prisms: [
+      { type: 'static', splitCount: 3 },
+      { type: 'rotating', splitCount: 3 },
+      { type: 'rotating', splitCount: 3 },
+      { type: 'moving', splitCount: 3 },
+      { type: 'moving', splitCount: 3 },
+      { type: 'destructible', splitCount: 3, hp: 6 },
+      { type: 'destructible', splitCount: 3, hp: 6 },
+    ],
+    barrels: [{}, {}, {}, {}, {}, {}],
+    portals: [{}, {}, {}],
+    apples: [{}, {}, {}, {}],
+    gravityWells: [{ type: 'pulse' }, { type: 'pulse' }, { type: 'attract' }],
+    amplifiers: [{ charges: 3 }, { charges: 3 }],
+  },
+
+  // Level 24 — 真终焉: all gravity types + 3 amplifiers
+  {
+    id: 24, name: '真终焉', shots: 51,
+    enemies: [
+      { type: 'basic', hp: 5, canShoot: true },
+      { type: 'basic', hp: 5, canShoot: true },
+      { type: 'basic', hp: 5, canShoot: true },
+      { type: 'basic', hp: 5, canShoot: true },
+      { type: 'basic', hp: 5, canShoot: true },
+      { type: 'basic', hp: 5, canShoot: true },
+      { type: 'basic', hp: 5, canShoot: true },
+      { type: 'patrol', hp: 4, canShoot: true },
+      { type: 'patrol', hp: 4, canShoot: true },
+      { type: 'patrol', hp: 4, canShoot: true },
+      { type: 'patrol', hp: 4, canShoot: true },
+      { type: 'tank', hp: 10, canShoot: true },
+      { type: 'tank', hp: 10, canShoot: true },
+      { type: 'tank', hp: 10, canShoot: true },
+      { type: 'sniper', hp: 4, canShoot: true },
+      { type: 'sniper', hp: 4, canShoot: true },
+      { type: 'sniper', hp: 4, canShoot: true },
+      { type: 'sniper', hp: 4, canShoot: true },
+      { type: 'healer', hp: 3, canShoot: false },
+      { type: 'healer', hp: 3, canShoot: false },
+      { type: 'ghost', hp: 3, canShoot: true },
+      { type: 'ghost', hp: 3, canShoot: true },
+      { type: 'ghost', hp: 3, canShoot: true },
+    ],
+    prisms: [
+      { type: 'static', splitCount: 3 },
+      { type: 'static', splitCount: 3 },
+      { type: 'rotating', splitCount: 3 },
+      { type: 'rotating', splitCount: 3 },
+      { type: 'moving', splitCount: 3 },
+      { type: 'moving', splitCount: 3 },
+      { type: 'moving', splitCount: 3 },
+      { type: 'destructible', splitCount: 3, hp: 6 },
+    ],
+    barrels: [{}, {}, {}, {}, {}, {}],
+    portals: [{}, {}, {}, {}],
+    apples: [{}, {}, {}, {}, {}],
+    gravityWells: [{ type: 'pulse' }, { type: 'pulse' }, { type: 'attract' }, { type: 'repel' }],
+    amplifiers: [{ charges: 3 }, { charges: 3 }, { charges: 3 }],
   },
 ];
