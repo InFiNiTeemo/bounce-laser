@@ -8,7 +8,7 @@ import { initStartDemo } from './startDemo.js';
 import { showEditorLevelSelect, returnToEditor } from '../editor/editor.js';
 import { showBestiary, hideBestiary } from './bestiary.js';
 import { skipTutorial, resetTutorialFlag, startTutorial } from '../systems/tutorial.js';
-import { showAdminPanel, initAdminPanel } from '../community/admin.js';
+import { showAdminPanel, initAdminPanel, returnToAdmin } from '../community/admin.js';
 
 export function initInput(){
 canvas.addEventListener('mousemove',e=>{const r=canvas.getBoundingClientRect();game.mouseX=(e.clientX-r.left)*(W/r.width);game.mouseY=(e.clientY-r.top)*(H/r.height);});
@@ -32,6 +32,7 @@ document.getElementById('restartBtn').addEventListener('click',function(){
 document.getElementById('selectLevelBtn2').addEventListener('click',showLevelSelect);
 document.getElementById('backToMenuBtn').addEventListener('click',showMainMenu);
 document.getElementById('backToEditorBtn').addEventListener('click',returnToEditor);
+document.getElementById('backToAdminBtn').addEventListener('click',returnToAdmin);
 document.getElementById('backBtn').addEventListener('click',function(){document.getElementById('levelSelectScreen').classList.add('hidden');document.getElementById('startScreen').classList.remove('hidden');initStartDemo();});
 document.getElementById('bestiaryBtn').addEventListener('click',showBestiary);
 document.getElementById('bestiaryBackBtn').addEventListener('click',hideBestiary);

@@ -49,7 +49,7 @@ cd G:/code/bullet_reflector
 NO_PROXY="*" npx wrangler pages deploy . --project-name bounce-laser --branch master
 ```
 
-部署即时生效，国内可直接访问。
+部署即时生效，国内可直接访问。KV 绑定已在 `wrangler.toml` 中配置，部署时自动生效。
 
 ### 两个平台都要更新
 
@@ -71,11 +71,13 @@ NO_PROXY="*" npx wrangler pages deploy . --project-name bounce-laser --branch ma
 - **wrangler 登录**：首次使用需要 `npx wrangler login`，会打开浏览器授权 Cloudflare 账号
 - **GitHub CLI**：首次推送需要 `gh auth login` 登录 GitHub 账号
 - **不要提交 `.wrangler/` 和 `.claude/`**：这些是本地工具缓存，不应该进入版本库
+- **社区关卡后端**：使用 Cloudflare KV 存储，绑定配置在 `wrangler.toml`。管理员审核密码硬编码在 `functions/api/levels/admin.js` 中（默认 `666666`）
 
 ## 项目结构
 
 ```
 index.html               # 游戏主页面（HTML + CSS）
+wrangler.toml            # Cloudflare Pages 配置（KV 绑定）
 js/
   core/                   # 核心模块（常量、状态、渲染、游戏循环）
   entities/               # 实体（玩家、敌人、子弹）
@@ -83,5 +85,7 @@ js/
   systems/                # 系统（伤害、粒子、护盾、升级、教程）
   ui/                     # 界面（输入、屏幕管理、开始动画、关卡解锁、图鉴）
   editor/                 # 关卡编辑器
+  community/              # 社区关卡 API 客户端 + 管理面板
   levelLoader.js          # 关卡加载器
+functions/api/levels/     # Cloudflare Pages Functions（社区关卡后端）
 ```

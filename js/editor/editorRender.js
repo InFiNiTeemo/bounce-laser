@@ -2,7 +2,7 @@
  * editorRender.js - Renders the editor canvas using game draw functions
  */
 import { ctx, setCtx, drawBackground } from '../core/render.js';
-import { W, H, PRISM_UNIT_W } from '../core/constants.js';
+import { W, H, PRISM_UNIT_W, BARREL_EXPLOSION_RADIUS } from '../core/constants.js';
 import { drawEnemy } from '../entities/enemies.js';
 import { drawPrism } from '../objects/prism.js';
 import { drawBarrel } from '../objects/barrels.js';
@@ -87,6 +87,18 @@ export function renderEditor(editorCtx, state) {
   // Barrels
   for (const b of (ld.barrels || [])) {
     if (b.x != null) {
+      // Explosion radius indicator
+      editorCtx.save();
+      editorCtx.strokeStyle = 'rgba(255,100,0,0.15)';
+      editorCtx.fillStyle = 'rgba(255,80,0,0.04)';
+      editorCtx.lineWidth = 1;
+      editorCtx.setLineDash([4, 4]);
+      editorCtx.beginPath();
+      editorCtx.arc(b.x, b.y, BARREL_EXPLOSION_RADIUS, 0, Math.PI * 2);
+      editorCtx.fill();
+      editorCtx.stroke();
+      editorCtx.setLineDash([]);
+      editorCtx.restore();
       drawBarrel({
         x: b.x, y: b.y, size: 10,
         glowPhase: performance.now() / 400, exploded: false,
@@ -223,6 +235,15 @@ export function renderEditor(editorCtx, state) {
         }
       }
     } else if (state.tool === 'barrel') {
+      editorCtx.save();
+      editorCtx.strokeStyle = 'rgba(255,100,0,0.2)';
+      editorCtx.lineWidth = 1;
+      editorCtx.setLineDash([4, 4]);
+      editorCtx.beginPath();
+      editorCtx.arc(gx, gy, BARREL_EXPLOSION_RADIUS, 0, Math.PI * 2);
+      editorCtx.stroke();
+      editorCtx.setLineDash([]);
+      editorCtx.restore();
       drawBarrel({ x: gx, y: gy, size: 10, glowPhase: 0, exploded: false });
     } else if (state.tool === 'portal') {
       drawPixelCircle(gx, gy, 16, state.portalPhase === 0 ? '#4488ff' : '#ff8844');

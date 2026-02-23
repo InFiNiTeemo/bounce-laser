@@ -10,7 +10,7 @@ import { W, H, PRISM_UNIT_W, PRISM_MAX_SEGMENTS } from '../core/constants.js';
 export function initEditorUI(state, callbacks) {
   const {
     onToolChange, onNew, onSave, onLoad, onPlayTest,
-    onCopyJSON, onPasteJSON, onExportAll, onUndo, onRedo, onBack,
+    onCopyJSON, onPasteJSON, onUndo, onRedo, onBack,
   } = callbacks;
 
   // Tool buttons
@@ -93,7 +93,6 @@ export function initEditorUI(state, callbacks) {
   document.getElementById('editorPlayTest').addEventListener('click', onPlayTest);
   document.getElementById('editorCopyJSON').addEventListener('click', onCopyJSON);
   document.getElementById('editorPasteJSON').addEventListener('click', onPasteJSON);
-  document.getElementById('editorExportAll').addEventListener('click', onExportAll);
   document.getElementById('editorUndo').addEventListener('click', onUndo);
   document.getElementById('editorRedo').addEventListener('click', onRedo);
   document.getElementById('editorBack').addEventListener('click', onBack);

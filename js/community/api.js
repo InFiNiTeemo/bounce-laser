@@ -20,11 +20,11 @@ async function request(path, options = {}) {
   }
 }
 
-/** Submit a level for review (public) */
-export async function submitLevel(levelData, author) {
+/** Submit a level for review (public). clientId for dedup. */
+export async function submitLevel(levelData, author, clientId) {
   return request('/submit', {
     method: 'POST',
-    body: JSON.stringify({ levelData, author }),
+    body: JSON.stringify({ levelData, author, clientId }),
   });
 }
 

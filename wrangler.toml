@@ -1,0 +1,7 @@
+name = "bounce-laser"
+compatibility_date = "2024-12-01"
+pages_build_output_dir = "."
+
+[[kv_namespaces]]
+binding = "COMMUNITY_LEVELS"
+id = "59f88463e33449b5a855db6368ad6d76"

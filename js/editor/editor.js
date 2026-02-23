@@ -108,9 +108,12 @@ function buildEditorLevelSelect() {
     html += '</div>';
   }
 
-  // New blank + back buttons
-  html += '<div style="display:flex;gap:12px;margin-top:8px;">';
+  // New blank + export all + back buttons
+  html += '<div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;justify-content:center;">';
   html += '<button class="start-btn" id="editorNewBlankBtn" style="font-size:10px;border-color:#aa44ff;color:#aa44ff;">\u65B0\u5EFA\u7A7A\u767D</button>';
+  if (customs.length > 0) {
+    html += '<button class="start-btn" id="editorExportAllBtn" style="font-size:10px;border-color:#44ddaa;color:#44ddaa;">\u5BFC\u51FA\u5168\u90E8</button>';
+  }
   html += '<button class="start-btn" id="editorSelectBackBtn" style="font-size:10px;">\u8FD4\u56DE</button>';
   html += '</div>';
 
@@ -147,6 +150,10 @@ function buildEditorLevelSelect() {
     screen.classList.add('hidden');
     openEditor(null);
   });
+
+  // Export all
+  const exportAllBtn = document.getElementById('editorExportAllBtn');
+  if (exportAllBtn) exportAllBtn.addEventListener('click', handleExportAll);
 
   // Back
   document.getElementById('editorSelectBackBtn').addEventListener('click', () => {
@@ -228,7 +235,6 @@ export function openEditor(levelDataToEdit) {
     onPlayTest: handlePlayTest,
     onCopyJSON: handleCopyJSON,
     onPasteJSON: handlePasteJSON,
-    onExportAll: handleExportAll,
     onUndo: handleUndo,
     onRedo: handleRedo,
     onBack: handleBack,
@@ -286,7 +292,7 @@ async function handleSave() {
   const ld = state.levelData;
   if (ld.enemies && ld.enemies.length > 0 && ld.name) {
     try {
-      await submitLevel(cloneLevel(ld), '');
+      await submitLevel(cloneLevel(ld), '', id);
       alert('\u5173\u5361\u5DF2\u4FDD\u5B58\u5E76\u63D0\u4EA4\u5BA1\u6838\uFF01');
     } catch {
       alert('\u5173\u5361\u5DF2\u4FDD\u5B58\uFF08\u4E91\u7AEF\u540C\u6B65\u5931\u8D25\uFF0C\u4EC5\u672C\u5730\uFF09');
