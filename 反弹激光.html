@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>反弹激光 - Bounce Laser</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a12;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Press Start 2P', monospace;
+    image-rendering: pixelated;
+  }
+
+  #gameContainer {
+    position: relative;
+    border: 4px solid #1a1a2e;
+    box-shadow: 0 0 40px rgba(0, 255, 136, 0.15), inset 0 0 60px rgba(0,0,0,0.5);
+  }
+
+  canvas {
+    display: block;
+    image-rendering: pixelated;
+  }
+
+  #ui-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .ui-box {
+    background: rgba(0,0,0,0.7);
+    border: 2px solid #00ff88;
+    padding: 6px 12px;
+    color: #00ff88;
+    font-size: 10px;
+    text-shadow: 0 0 8px #00ff88;
+  }
+
+  #gameOverScreen, #levelClearScreen {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(5, 5, 15, 0.92);
+    z-index: 20;
+    color: #00ff88;
+    text-align: center;
+    gap: 16px;
+  }
+
+  #startScreen, #levelSelectScreen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: #0a0a12;
+    z-index: 100;
+    color: #00ff88;
+    text-align: center;
+  }
+
+  .screen-title {
+    font-size: 32px;
+    text-shadow: 0 0 20px #00ff88, 0 0 40px #00ff88, 0 0 80px rgba(0, 255, 136, 0.4);
+    letter-spacing: 8px;
+    animation: titlePulse 2.5s ease-in-out infinite;
+    position: relative;
+    z-index: 2;
+  }
+
+  .screen-subtitle {
+    font-size: 11px;
+    color: #88ffcc;
+    letter-spacing: 12px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .screen-info {
+    font-size: 8px;
+    color: #66ddaa;
+    line-height: 2.2;
+    max-width: 420px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .screen-info .key-hint {
+    color: #00ff88;
+    border: 1px solid #00ff8866;
+    padding: 1px 5px;
+    font-size: 7px;
+  }
+
+  .start-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 12px;
+    padding: 12px 32px;
+    background: transparent;
+    border: 2px solid #00ff88;
+    color: #00ff88;
+    cursor: pointer;
+    text-shadow: 0 0 8px #00ff88;
+    transition: all 0.2s;
+    pointer-events: all;
+    position: relative;
+    z-index: 2;
+  }
+
+  .start-btn:hover {
+    background: #00ff88;
+    color: #0a0a12;
+    box-shadow: 0 0 20px #00ff88, 0 0 40px rgba(0, 255, 136, 0.3);
+    text-shadow: none;
+  }
+
+  .start-screen-divider {
+    width: 240px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #00ff88, transparent);
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.4);
+    position: relative;
+    z-index: 2;
+  }
+
+  .high-score {
+    font-size: 9px;
+    color: #ffdd44;
+    text-shadow: 0 0 8px rgba(255, 221, 68, 0.5);
+    position: relative;
+    z-index: 2;
+    min-height: 14px;
+  }
+
+  .start-hint {
+    font-size: 7px;
+    color: #335544;
+    animation: pulse 2s ease-in-out infinite;
+    position: relative;
+    z-index: 2;
+  }
+
+  #startScreen {
+    gap: 14px;
+  }
+
+  #demoCanvas {
+    border: 2px solid #1a3a2e;
+    box-shadow: 0 0 20px rgba(0,255,136,0.1);
+    image-rendering: pixelated;
+    position: relative;
+    z-index: 2;
+  }
+
+  #startScreen::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  @keyframes titlePulse {
+    0%, 100% { opacity: 1; text-shadow: 0 0 20px #00ff88, 0 0 40px #00ff88, 0 0 80px rgba(0,255,136,0.4); }
+    50% { opacity: 0.85; text-shadow: 0 0 30px #00ff88, 0 0 60px #00ff88, 0 0 100px rgba(0,255,136,0.3); }
+  }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes btnBreath {
+    0%, 100% { box-shadow: 0 0 5px rgba(0,255,136,0.3); }
+    50% { box-shadow: 0 0 20px rgba(0,255,136,0.6), 0 0 40px rgba(0,255,136,0.15); }
+  }
+
+  .fade-in-1 { animation: fadeInUp 0.5s ease 0.1s both; }
+  .fade-in-2 { animation: fadeInUp 0.5s ease 0.35s both; }
+  .fade-in-3 { animation: fadeInUp 0.5s ease 0.6s both; }
+  .fade-in-4 { animation: fadeInUp 0.5s ease 0.85s both; }
+  .fade-in-5 { animation: fadeInUp 0.5s ease 1.3s both; }
+
+  .hidden { display: none !important; }
+
+  #bounceControl {
+    position: absolute; bottom: 12px; right: 16px; z-index: 10;
+    display: flex; align-items: center; gap: 8px; pointer-events: all;
+  }
+  #bounceControl label { font-size: 8px; color: #00ff88; font-family: 'Press Start 2P', monospace; }
+  #bounceControl select { font-family: 'Press Start 2P', monospace; font-size: 8px; background: rgba(0,0,0,0.8); color: #00ff88; border: 1px solid #00ff88; padding: 4px 6px; cursor: pointer; }
+
+  .game-over-title { font-size: 20px; color: #ff4444; text-shadow: 0 0 20px #ff4444; }
+  .level-clear-title { font-size: 20px; color: #ffdd44; text-shadow: 0 0 20px #ffdd44; }
+  .btn-row { display: flex; gap: 12px; position: relative; z-index: 2; }
+
+  #levelSelectScreen {
+    gap: 16px;
+  }
+  .level-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .level-btn { font-family: 'Press Start 2P', monospace; font-size: 11px; width: 72px; height: 52px; background: transparent; border: 2px solid #00ff88; color: #00ff88; cursor: pointer; text-shadow: 0 0 8px #00ff88; transition: all 0.2s; }
+  .level-btn:hover:not(.locked) { background: #00ff88; color: #0a0a12; box-shadow: 0 0 20px #00ff88; }
+  .level-btn.locked { border-color: #333; color: #333; cursor: not-allowed; text-shadow: none; }
+  .level-btn.cleared { border-color: #ffdd44; color: #ffdd44; text-shadow: 0 0 8px #ffdd44; }
+  .level-btn.cleared:hover { background: #ffdd44; color: #0a0a12; box-shadow: 0 0 20px #ffdd44; }
+
+  .upgrade-subtitle { font-size: 9px; color: #ffdd44; text-shadow: 0 0 8px rgba(255,221,68,0.4); position: relative; z-index: 2; }
+  #upgradePanel { display: flex; gap: 14px; position: relative; z-index: 2; }
+  .upgrade-card { background: rgba(0,0,0,0.7); border: 2px solid #334433; padding: 14px 10px 10px; width: 155px; cursor: pointer; transition: all 0.25s; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 7px; pointer-events: all; font-family: 'Press Start 2P', monospace; opacity: 0; transform: translateY(15px); animation: fadeInUp 0.4s ease forwards; }
+  .upgrade-card:nth-child(1) { animation-delay: 0.3s; }
+  .upgrade-card:nth-child(2) { animation-delay: 0.5s; }
+  .upgrade-card:nth-child(3) { animation-delay: 0.7s; }
+  .upgrade-card:hover { border-color: #ffdd44; background: rgba(255,221,68,0.08); box-shadow: 0 0 20px rgba(255,221,68,0.25); transform: translateY(-4px); }
+  .upgrade-name { font-size: 9px; text-shadow: 0 0 8px currentColor; }
+  .upgrade-value { font-size: 8px; color: #fff; background: rgba(255,255,255,0.06); padding: 3px 8px; }
+  .upgrade-desc { font-size: 6px; color: #668866; line-height: 1.8; }
+  .upgrade-key { font-size: 7px; color: #444; border: 1px solid #333; padding: 2px 6px; }
+
+  /* ---- Main Menu ---- */
+  .menu-buttons { display: flex; flex-direction: column; gap: 12px; position: relative; z-index: 2; }
+  .menu-btn {
+    min-width: 220px; font-family: 'Press Start 2P', monospace; font-size: 12px;
+    padding: 14px 32px; background: transparent; border: 2px solid #00ff88;
+    color: #00ff88; cursor: pointer; text-shadow: 0 0 8px #00ff88; transition: all 0.2s; pointer-events: all;
+  }
+  .menu-btn:hover:not(:disabled) { background: #00ff88; color: #0a0a12; box-shadow: 0 0 20px #00ff88, 0 0 40px rgba(0,255,136,0.3); text-shadow: none; }
+  .menu-btn:disabled { border-color: #1a2a20; color: #1a2a20; text-shadow: none; cursor: not-allowed; }
+  .menu-btn-primary { animation: fadeInUp 0.5s ease 0.8s both, btnBreath 2s ease-in-out infinite 1.3s; }
+  .menu-btn-continue { animation: fadeInUp 0.5s ease 0.95s both; }
+  .menu-btn-continue:not(:disabled) { border-color: #ffdd44; color: #ffdd44; text-shadow: 0 0 8px rgba(255,221,68,0.5); }
+  .menu-btn-continue:not(:disabled):hover { background: #ffdd44; color: #0a0a12; box-shadow: 0 0 20px #ffdd44, 0 0 40px rgba(255,221,68,0.3); text-shadow: none; }
+  .menu-btn-select { animation: fadeInUp 0.5s ease 1.1s both; font-size: 10px; padding: 10px 24px; border-color: #557799; color: #557799; text-shadow: 0 0 6px rgba(85,119,153,0.3); }
+  .menu-btn-select:hover { background: #557799 !important; color: #0a0a12 !important; box-shadow: 0 0 20px #557799 !important; text-shadow: none !important; }
+  .save-info { font-size: 7px; color: #887744; position: relative; z-index: 2; min-height: 10px; margin-top: -8px; }
+  .help-toggle { font-family: 'Press Start 2P', monospace; font-size: 8px; background: transparent; border: none; color: #335544; cursor: pointer; padding: 4px 12px; transition: color 0.2s; position: relative; z-index: 2; pointer-events: all; }
+  .help-toggle:hover { color: #00ff88; }
+  .help-panel { max-height: 0; overflow: hidden; transition: max-height 0.35s ease, opacity 0.35s ease; opacity: 0; position: relative; z-index: 2; }
+  .help-panel.show { max-height: 180px; opacity: 1; }
+  .back-menu-btn { font-family: 'Press Start 2P', monospace; font-size: 9px; padding: 8px 20px; background: transparent; border: 1px solid #335544; color: #557755; cursor: pointer; transition: all 0.2s; pointer-events: all; position: relative; z-index: 2; }
+  .back-menu-btn:hover { border-color: #00ff88; color: #00ff88; }
+
+  /* Pause Screen */
+  #pauseScreen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(5, 5, 15, 0.92); z-index: 20; color: #00ff88; text-align: center; gap: 16px; }
+  .pause-title { font-size: 20px; color: #00ff88; text-shadow: 0 0 20px #00ff88; }
+  #pauseMenu { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+  #statusPanel { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+  #statusContent { display: grid; grid-template-columns: auto auto; gap: 6px 16px; text-align: left; font-size: 8px; color: #66ddaa; line-height: 2; }
+  #statusContent .stat-label { color: #557755; }
+  #statusContent .stat-value { color: #00ff88; text-shadow: 0 0 6px rgba(0,255,136,0.3); }
+</style>
+</head>
+<body>
+
+<!-- Start Screen (独立全屏界面) -->
+<div id="startScreen">
+  <div class="screen-title fade-in-1">反弹激光</div>
+  <div class="screen-subtitle fade-in-1">BOUNCE LASER</div>
+  <div class="start-screen-divider fade-in-2"></div>
+  <canvas id="demoCanvas" width="320" height="180" class="fade-in-2"></canvas>
+  <div class="high-score fade-in-3" id="highScoreDisplay"></div>
+  <div class="menu-buttons fade-in-3">
+    <button class="menu-btn menu-btn-primary" id="startBtn">开始游戏</button>
+    <button class="menu-btn menu-btn-continue" id="continueBtn" disabled>继续游戏</button>
+    <button class="menu-btn menu-btn-select" id="selectLevelBtn">选择关卡</button>
+  </div>
+  <div class="save-info" id="saveInfo"></div>
+  <button class="help-toggle fade-in-4" id="helpToggle">操作说明 &#9660;</button>
+  <div class="help-panel screen-info" id="helpPanel">
+    <span class="key-hint">MOUSE</span> 控制枪旋转方向<br>
+    <span class="key-hint">LEFT CLICK</span> 发射激光子弹<br>
+    <span class="key-hint">RIGHT CLICK</span> 按住激活全息护盾<br>
+    子弹会反弹 - 小心别打到自己!<br>
+    击杀敌人获得弹药补给
+  </div>
+  <div class="start-hint fade-in-5">- SPACE 开始游戏 -</div>
+</div>
+
+<!-- Level Select Screen (独立全屏界面) -->
+<div id="levelSelectScreen" class="hidden">
+  <div class="screen-title" style="font-size:24px;">选择关卡</div>
+  <div class="screen-subtitle">SELECT LEVEL</div>
+  <div class="level-grid" id="levelGrid"></div>
+  <button class="start-btn" id="backBtn">返回</button>
+</div>
+
+<div id="gameContainer" class="hidden">
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="ui-overlay">
+    <div class="ui-box" id="hpDisplay">HP: &#9829;&#9829;&#9829;</div>
+    <div class="ui-box" id="levelDisplay">关卡 1</div>
+    <div class="ui-box" id="shotsDisplay">弹药: 10</div>
+    <div class="ui-box" id="enemyDisplay">敌人: 0</div>
+    <div class="ui-box" id="shieldDisplay">护盾: 100%</div>
+    <div class="ui-box" id="piercingDisplay" style="display:none">穿透: 0</div>
+  </div>
+
+  <div id="bounceControl">
+    <label>反弹:</label>
+    <select id="bounceSelect">
+      <option value="1">1次</option>
+      <option value="2">2次</option>
+      <option value="3" selected>3次</option>
+      <option value="5">5次</option>
+      <option value="8">8次</option>
+    </select>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="gameOverScreen" class="hidden">
+    <div class="game-over-title">游戏结束</div>
+    <div class="screen-info" id="deathReason"></div>
+    <div class="screen-info" id="finalScore"></div>
+    <div class="btn-row">
+      <button class="start-btn" id="retryBtn">继续挑战</button>
+      <button class="start-btn" id="restartBtn">重新开始</button>
+      <button class="start-btn" id="selectLevelBtn2">选关</button>
+    </div>
+    <button class="back-menu-btn" id="backToMenuBtn">返回主菜单</button>
+  </div>
+
+  <!-- Level Clear Screen -->
+  <div id="levelClearScreen" class="hidden">
+    <div class="level-clear-title">关卡通过!</div>
+    <div class="screen-info" id="levelScore"></div>
+    <div class="upgrade-subtitle">-- 选择升级 --</div>
+    <div id="upgradePanel"></div>
+    <div class="start-hint">按 1 / 2 / 3 快速选择</div>
+  </div>
+
+  <!-- Pause Screen -->
+  <div id="pauseScreen" class="hidden">
+    <div class="pause-title">暂停</div>
+    <div id="pauseMenu">
+      <button class="menu-btn" id="pauseStatusBtn">查看状态</button>
+      <button class="menu-btn" id="pauseResumeBtn">继续游戏</button>
+      <button class="back-menu-btn" id="pauseMenuBtn">回到主菜单</button>
+    </div>
+    <div id="statusPanel" class="hidden">
+      <div id="statusContent"></div>
+      <button class="menu-btn" id="statusBackBtn">返回</button>
+    </div>
+    <div class="start-hint">按 ESC 继续</div>
+  </div>
+
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
