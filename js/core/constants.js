@@ -1,0 +1,35 @@
+// constants.js - All game constants
+export const W = 640, H = 480;
+export const PX = 2;
+export const SHIELD_RADIUS = 40;
+export const MAX_LEVEL = 12;
+export const MAX_BULLETS = 50;
+export const PRISM_MIN_LEVEL = 4;
+
+export const COLORS = {
+  bg: '#0f0f1a', grid: '#151525', player: '#00ff88', playerDark: '#009955',
+  gun: '#cccccc', bullet: '#00ffcc', bulletTrail: '#00ff8855',
+  enemy: '#ff4466', enemyDark: '#aa2244', enemyBullet: '#ff6644',
+  wall: '#1a1a2e', text: '#00ff88', warning: '#ffdd44',
+  explosion: ['#ff4444','#ff8844','#ffcc44','#ffffff'],
+  laserGlow: '#00ffcc', shield: '#00ccff', shieldGlow: '#00eeff',
+};
+
+export const PRISM_COLORS = { body: '#aa44ff', bodyDark: '#6622aa', glow: '#cc66ff', destructible: '#ff88cc', destructibleDark: '#aa4488' };
+
+export const PORTAL_COLORS = { blue: '#4488ff', blueBright: '#66ccff', blueGlow: '#2266dd', orange: '#ff8844', orangeBright: '#ffcc66', orangeGlow: '#dd6622' };
+export const PORTAL_RADIUS = 16;
+export const PORTAL_MIN_LEVEL = 6;
+
+export const ENEMY_COLORS = {
+  patrol: { body:'#4488ff', dark:'#2255cc', eye:'#002266' },
+  tank:   { body:'#aa44ff', dark:'#6622cc', eye:'#330066' },
+  sniper: { body:'#ffcc00', dark:'#aa8800', eye:'#664400' },
+};
+
+export const BARREL_COLORS = { body: '#ff8822', bodyDark: '#aa5511', band: '#ffcc44', danger: '#ff2200', glow: '#ffaa33' };
+export const BARREL_MIN_LEVEL = 3;
+export const BARREL_EXPLOSION_RADIUS = 120;
+
+// Demo canvas dimensions
+export const DW = 320, DH = 180;
