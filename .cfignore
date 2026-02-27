@@ -1,0 +1,7 @@
+bin/
+tools/
+启动游戏.bat
+.git/
+.claude/
+.wrangler/
+.vscode/
