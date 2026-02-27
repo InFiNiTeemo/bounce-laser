@@ -1,3 +1,6 @@
 .wrangler/
 .claude/
 .vscode/
+bin/
+tools/
+启动游戏.bat

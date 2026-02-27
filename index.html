@@ -17,7 +17,6 @@
     height: 100vh;
     overflow: hidden;
     font-family: 'Press Start 2P', monospace;
-    image-rendering: pixelated;
   }
 
   #gameContainer {
@@ -28,12 +27,15 @@
 
   canvas {
     display: block;
-    image-rendering: pixelated;
   }
 
   #gameCanvas {
-    width: 800px;
-    height: 600px;
+    width: 1080px;
+    height: 810px;
+  }
+
+  #demoCanvas {
+    image-rendering: pixelated;
   }
 
   #ui-overlay {
@@ -290,6 +292,11 @@
   #pauseScreen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; background: rgba(5, 5, 15, 0.92); z-index: 20; color: #00ff88; text-align: center; gap: 16px; }
   .pause-title { font-size: 20px; color: #00ff88; text-shadow: 0 0 20px #00ff88; }
   #pauseMenu { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+  #volumeControl { display: flex; align-items: center; gap: 8px; }
+  #volumeSlider { -webkit-appearance: none; width: 100px; height: 4px; background: #1a1a2e; border-radius: 2px; outline: none; cursor: pointer; }
+  #volumeSlider::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #00ff88; box-shadow: 0 0 8px #00ff88; cursor: pointer; }
+  #volumeSlider::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: #00ff88; box-shadow: 0 0 8px #00ff88; border: none; cursor: pointer; }
+  #volumeSlider::-moz-range-track { background: #1a1a2e; height: 4px; border-radius: 2px; }
   #statusPanel { display: flex; flex-direction: column; gap: 12px; align-items: center; }
   #statusContent { display: grid; grid-template-columns: auto auto; gap: 6px 16px; text-align: left; font-size: 10px; color: #66ddaa; line-height: 2; }
   #statusContent .stat-label { color: #557755; }
@@ -674,6 +681,11 @@
     <div id="pauseMenu">
       <button class="menu-btn" id="pauseStatusBtn">查看状态</button>
       <button class="menu-btn" id="pauseHelpBtn">操作提示</button>
+      <div id="volumeControl">
+        <button class="menu-btn" id="muteBtn" style="font-size:10px;padding:4px 8px;min-width:30px;">🔊</button>
+        <input type="range" id="volumeSlider" min="0" max="100" value="70">
+        <span id="volumeLabel" style="font-size:9px;color:#00ff88;min-width:28px;">70%</span>
+      </div>
       <button class="menu-btn" id="pauseResumeBtn">继续游戏</button>
       <button class="back-menu-btn" id="pauseMenuBtn">回到主菜单</button>
     </div>
@@ -708,6 +720,7 @@
     <button class="editor-tool" data-tool="barrel">炸桶</button>
     <button class="editor-tool" data-tool="portal">传送门</button>
     <button class="editor-tool" data-tool="apple">苹果</button>
+    <button class="editor-tool" data-tool="wall">反射墙</button>
     <button class="editor-tool" data-tool="eraser">橡皮</button>
     <span class="editor-sep">|</span>
     <label>名称: <input type="text" id="editorLevelName" value="自定义关卡"></label>

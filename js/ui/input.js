@@ -9,12 +9,13 @@ import { showEditorLevelSelect, returnToEditor } from '../editor/editor.js';
 import { showBestiary, hideBestiary } from './bestiary.js';
 import { skipTutorial, resetTutorialFlag, startTutorial } from '../systems/tutorial.js';
 import { showAdminPanel, initAdminPanel, returnToAdmin } from '../community/admin.js';
+import { initAudio, playSound, setVolume, toggleMute, getVolume, isMuted } from '../systems/audio.js';
 
 export function initInput(){
 canvas.addEventListener('mousemove',e=>{const r=canvas.getBoundingClientRect();game.mouseX=(e.clientX-r.left)*(W/r.width);game.mouseY=(e.clientY-r.top)*(H/r.height);});
-canvas.addEventListener('click',()=>{if(game.running&&game.playerAlive)fireBullet();});
-canvas.addEventListener('mousedown',e=>{if(e.button===2&&game.running&&game.playerAlive&&!game.shieldCooldown)game.shieldActive=true;});
-canvas.addEventListener('mouseup',e=>{if(e.button===2)game.shieldActive=false;});
+canvas.addEventListener('click',()=>{initAudio();if(game.running&&game.playerAlive)fireBullet();});
+canvas.addEventListener('mousedown',e=>{initAudio();if(e.button===2&&game.running&&game.playerAlive&&!game.shieldCooldown){game.shieldActive=true;playSound('shield_on');}});
+canvas.addEventListener('mouseup',e=>{if(e.button===2){if(game.shieldActive)playSound('shield_off');game.shieldActive=false;}});
 document.getElementById('bounceSelect').addEventListener('change',e=>{game.maxBounces=parseInt(e.target.value);});
 
 document.getElementById('startBtn').addEventListener('click',startGame);
@@ -51,9 +52,23 @@ document.getElementById('pauseHelpBtn').addEventListener('click',showPauseHelp);
 document.getElementById('pauseHelpBackBtn').addEventListener('click',hidePauseHelp);
 
 document.addEventListener('keydown',e=>{
+  initAudio();
   // Don't handle keys when editor is active
   if(game.editorActive)return;
   if(e.code==='Escape'){e.preventDefault();if(game.tutorialActive){skipTutorial();return;}togglePause();return;}if(game.paused)return;if(e.code==='Space'){e.preventDefault();const ss=document.getElementById('startScreen'),go=document.getElementById('gameOverScreen'),ls=document.getElementById('levelSelectScreen'),lc=document.getElementById('levelClearScreen');if(!ls.classList.contains('hidden'))return;if(!lc.classList.contains('hidden'))return;if(!ss.classList.contains('hidden')||!go.classList.contains('hidden'))startGame();}const lc=document.getElementById('levelClearScreen');if(!lc.classList.contains('hidden')){if(e.code==='Digit1'||e.code==='Numpad1')applyUpgrade(0);if(e.code==='Digit2'||e.code==='Numpad2')applyUpgrade(1);if(e.code==='Digit3'||e.code==='Numpad3')applyUpgrade(2);}});
 
 document.addEventListener('contextmenu',e=>e.preventDefault());
+
+// UI click sound for all buttons
+document.addEventListener('click',e=>{if(e.target.matches('button'))playSound('ui_click');},true);
+
+// Volume controls
+document.getElementById('volumeSlider').addEventListener('input',e=>{
+  setVolume(parseInt(e.target.value)/100);
+  document.getElementById('volumeLabel').textContent=e.target.value+'%';
+});
+document.getElementById('muteBtn').addEventListener('click',()=>{
+  const nowMuted=toggleMute();
+  document.getElementById('muteBtn').textContent=nowMuted?'🔇':'🔊';
+});
 }

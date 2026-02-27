@@ -4,6 +4,8 @@
 import { ctx, drawPixelRect } from '../core/render.js';
 import { W, H } from '../core/constants.js';
 import { game, player } from '../core/state.js';
+import { getSprite } from '../sprites/spriteLoader.js';
+import { SPRITE_DEFS } from '../sprites/spriteData.js';
 
 export function spawnApples() {
   game.apples = [];
@@ -29,20 +31,12 @@ export function updateApples(dt) {
 
 export function drawApple(a) {
   const bob = Math.sin(a.bobPhase) * 2;
-  const cx = a.x, cy = a.y + bob;
   ctx.save();
   ctx.shadowColor = '#ff4444';
   ctx.shadowBlur = 6 + Math.sin(a.bobPhase * 2) * 3;
-  // Stem
-  drawPixelRect(cx - 2, cy - 12, 3, 6, '#55aa33');
-  drawPixelRect(cx + 2, cy - 11, 3, 3, '#44dd22');
-  // Body
-  drawPixelRect(cx - 6, cy - 6, 12, 3, '#ff2222');
-  drawPixelRect(cx - 8, cy - 3, 15, 6, '#ff3333');
-  drawPixelRect(cx - 6, cy + 3, 12, 3, '#cc2222');
-  drawPixelRect(cx - 3, cy + 6, 6, 3, '#aa1111');
-  // Highlight
-  drawPixelRect(cx - 5, cy - 3, 3, 3, '#ff8888');
+  const sprite = getSprite('apple');
+  const def = SPRITE_DEFS.apple;
+  ctx.drawImage(sprite, Math.floor(a.x - def.cx), Math.floor(a.y + bob - def.cy), def.w, def.h);
   ctx.shadowBlur = 0;
   ctx.restore();
 }

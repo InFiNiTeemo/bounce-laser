@@ -1,7 +1,7 @@
 /**
- * render.js - Canvas initialization and pixel drawing helpers
+ * render.js - Canvas initialization and drawing helpers
  */
-import { W, H, PX, COLORS, DW, DH } from './constants.js';
+import { W, H, COLORS, DW, DH, CANVAS_W, CANVAS_H } from './constants.js';
 
 export let canvas;
 export let ctx;
@@ -11,8 +11,8 @@ export let demoCtx;
 export function initCanvas() {
   canvas = document.getElementById('gameCanvas');
   ctx = canvas.getContext('2d');
-  canvas.width = W;
-  canvas.height = H;
+  canvas.width = CANVAS_W;
+  canvas.height = CANVAS_H;
   demoCanvas = document.getElementById('demoCanvas');
   demoCtx = demoCanvas.getContext('2d');
 }
@@ -23,50 +23,54 @@ export function getCtx() { return ctx; }
 
 export function drawPixelRect(x, y, w, h, color) {
   ctx.fillStyle = color;
-  for (let i = 0; i < w; i += PX) {
-    for (let j = 0; j < h; j += PX) {
-      ctx.fillRect(Math.floor(x + i), Math.floor(y + j), PX, PX);
-    }
-  }
+  ctx.fillRect(Math.floor(x), Math.floor(y), w, h);
 }
 
 export function drawPixelCircle(cx, cy, r, color) {
   ctx.fillStyle = color;
-  for (let x = -r; x <= r; x += PX) {
-    for (let y = -r; y <= r; y += PX) {
-      if (x * x + y * y <= r * r) {
-        ctx.fillRect(Math.floor(cx + x), Math.floor(cy + y), PX, PX);
-      }
-    }
-  }
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
 }
 
+// Cached background (static grid + borders, drawn once)
+let bgCache = null;
+
+export function invalidateBgCache() { bgCache = null; }
+
 export function drawBackground() {
-  ctx.fillStyle = COLORS.bg;
-  ctx.fillRect(0, 0, W, H);
+  if (!bgCache) {
+    bgCache = document.createElement('canvas');
+    bgCache.width = W;
+    bgCache.height = H;
+    const bgCtx = bgCache.getContext('2d');
 
-  ctx.strokeStyle = COLORS.grid;
-  ctx.lineWidth = 1;
+    bgCtx.fillStyle = COLORS.bg;
+    bgCtx.fillRect(0, 0, W, H);
 
-  for (let x = 0; x < W; x += 32) {
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, H);
-    ctx.stroke();
+    bgCtx.strokeStyle = COLORS.grid;
+    bgCtx.lineWidth = 1;
+    for (let x = 0; x < W; x += 32) {
+      bgCtx.beginPath();
+      bgCtx.moveTo(x, 0);
+      bgCtx.lineTo(x, H);
+      bgCtx.stroke();
+    }
+    for (let y = 0; y < H; y += 32) {
+      bgCtx.beginPath();
+      bgCtx.moveTo(0, y);
+      bgCtx.lineTo(W, y);
+      bgCtx.stroke();
+    }
+
+    bgCtx.shadowColor = '#00ff8844';
+    bgCtx.shadowBlur = 10;
+    bgCtx.fillStyle = '#1a3a2e';
+    bgCtx.fillRect(0, 0, W, 4);
+    bgCtx.fillRect(0, H - 4, W, 4);
+    bgCtx.fillRect(0, 0, 4, H);
+    bgCtx.fillRect(W - 4, 0, 4, H);
+    bgCtx.shadowBlur = 0;
   }
-
-  for (let y = 0; y < H; y += 32) {
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(W, y);
-    ctx.stroke();
-  }
-
-  ctx.shadowColor = '#00ff8844';
-  ctx.shadowBlur = 10;
-  drawPixelRect(0, 0, W, 4, '#1a3a2e');
-  drawPixelRect(0, H - 4, W, 4, '#1a3a2e');
-  drawPixelRect(0, 0, 4, H, '#1a3a2e');
-  drawPixelRect(W - 4, 0, 4, H, '#1a3a2e');
-  ctx.shadowBlur = 0;
+  ctx.drawImage(bgCache, 0, 0);
 }

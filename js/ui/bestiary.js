@@ -1,5 +1,8 @@
 import { getUnlockedLevel } from './levelUnlock.js';
 import { initStartDemo } from './startDemo.js';
+import { getSprite } from '../sprites/spriteLoader.js';
+import { SPRITE_DEFS } from '../sprites/spriteData.js';
+import { PORTAL_COLORS, PRISM_COLORS } from '../core/constants.js';
 
 const CATEGORIES = [
   { id: 'enemy', name: '敌人' },
@@ -134,148 +137,151 @@ function fc(ctx, x, y, r) {
   ctx.fill();
 }
 
-function drawBasicEnemy(cvs) {
+/** Draw a sprite centered on 64x64 canvas with glow. Returns the 2d context. */
+function drawSpritePreview(cvs, spriteKey, glowColor) {
   const c = cvs.getContext('2d');
-  c.shadowColor = '#ff4466'; c.shadowBlur = 10;
-  c.fillStyle = '#aa2244'; fc(c, 32, 32, 14);
-  c.fillStyle = '#ff4466'; fc(c, 32, 32, 11);
+  const sprite = getSprite(spriteKey);
+  const def = SPRITE_DEFS[spriteKey];
+  if (!sprite || !def) return c;
+  const x = Math.floor((64 - def.w) / 2);
+  const y = Math.floor((64 - def.h) / 2);
+  c.shadowColor = glowColor;
+  c.shadowBlur = 12;
+  c.drawImage(sprite, x, y, def.w, def.h);
   c.shadowBlur = 0;
-  c.fillStyle = '#220011'; fc(c, 32, 30, 4);
-  c.fillStyle = '#ffffff'; fc(c, 33, 29, 2);
+  return c;
+}
+
+function drawBasicEnemy(cvs) {
+  drawSpritePreview(cvs, 'enemy_basic', '#ff4466');
 }
 
 function drawPatrolEnemy(cvs) {
-  const c = cvs.getContext('2d');
-  c.shadowColor = '#4488ff'; c.shadowBlur = 10;
-  c.fillStyle = '#2255cc'; fc(c, 32, 32, 12);
-  c.fillStyle = '#4488ff'; fc(c, 32, 32, 9);
-  c.shadowBlur = 0;
-  c.fillStyle = '#002266'; fc(c, 32, 30, 3);
-  c.fillStyle = '#ffffff'; fc(c, 33, 29, 1.5);
-  c.fillStyle = '#4488ff44';
-  c.fillRect(8, 30, 10, 4);
-  c.fillRect(46, 30, 10, 4);
+  const c = drawSpritePreview(cvs, 'enemy_patrol', '#4488ff');
+  // Patrol direction arrows
+  c.fillStyle = '#4488ff66';
+  const arrowY = 32;
+  c.beginPath(); c.moveTo(4, arrowY); c.lineTo(10, arrowY - 4); c.lineTo(10, arrowY + 4); c.closePath(); c.fill();
+  c.beginPath(); c.moveTo(60, arrowY); c.lineTo(54, arrowY - 4); c.lineTo(54, arrowY + 4); c.closePath(); c.fill();
 }
 
 function drawTankEnemy(cvs) {
-  const c = cvs.getContext('2d');
-  c.shadowColor = '#aa44ff'; c.shadowBlur = 12;
-  c.fillStyle = '#6622cc'; fc(c, 32, 32, 18);
-  c.fillStyle = '#aa44ff'; fc(c, 32, 32, 14);
-  c.shadowBlur = 0;
-  c.fillStyle = '#330066'; fc(c, 32, 30, 5);
-  c.fillStyle = '#ffffff'; fc(c, 33, 29, 2.5);
-  c.strokeStyle = '#6622cc'; c.lineWidth = 2;
-  c.beginPath(); c.arc(32, 32, 17, -0.5, 0.5); c.stroke();
-  c.beginPath(); c.arc(32, 32, 17, 2.6, 3.6); c.stroke();
+  drawSpritePreview(cvs, 'enemy_tank', '#aa44ff');
 }
 
 function drawSniperEnemy(cvs) {
-  const c = cvs.getContext('2d');
-  c.shadowColor = '#ffcc00'; c.shadowBlur = 10;
-  c.fillStyle = '#aa8800'; fc(c, 32, 32, 10);
-  c.fillStyle = '#ffcc00'; fc(c, 32, 32, 7);
-  c.shadowBlur = 0;
-  c.fillStyle = '#664400'; fc(c, 32, 30, 3);
-  c.fillStyle = '#ffffff'; fc(c, 33, 29, 1.5);
-  c.shadowColor = '#ff0000'; c.shadowBlur = 6;
-  c.strokeStyle = '#ff000088'; c.lineWidth = 1;
-  c.beginPath(); c.moveTo(42, 32); c.lineTo(62, 32); c.stroke();
+  const c = drawSpritePreview(cvs, 'enemy_sniper', '#ffcc00');
+  // Laser sight line
+  c.shadowColor = '#ff0000';
+  c.shadowBlur = 6;
+  c.strokeStyle = '#ff000088';
+  c.lineWidth = 1;
+  c.beginPath(); c.moveTo(46, 32); c.lineTo(64, 32); c.stroke();
   c.shadowBlur = 0;
 }
 
 function drawHealerEnemy(cvs) {
-  const c = cvs.getContext('2d');
-  c.shadowColor = '#44cc88'; c.shadowBlur = 10;
-  c.fillStyle = '#228855'; fc(c, 32, 32, 12);
-  c.fillStyle = '#44cc88'; fc(c, 32, 32, 9);
-  c.shadowBlur = 0;
-  // White cross
-  c.fillStyle = '#ffffff';
-  c.fillRect(30, 24, 4, 16);
-  c.fillRect(24, 30, 16, 4);
+  drawSpritePreview(cvs, 'enemy_healer', '#44cc88');
 }
 
 function drawGhostEnemy(cvs) {
   const c = cvs.getContext('2d');
-  c.shadowColor = '#44ddcc'; c.shadowBlur = 10;
-  c.globalAlpha = 0.6;
-  c.fillStyle = '#228877'; fc(c, 32, 32, 12);
-  c.fillStyle = '#44ddcc'; fc(c, 32, 32, 9);
+  const sprite = getSprite('enemy_ghost');
+  const def = SPRITE_DEFS.enemy_ghost;
+  if (!sprite || !def) return;
+  const x = Math.floor((64 - def.w) / 2);
+  const y = Math.floor((64 - def.h) / 2);
+  // Semi-transparent to show ghostly nature
+  c.globalAlpha = 0.65;
+  c.shadowColor = '#44ddcc';
+  c.shadowBlur = 14;
+  c.drawImage(sprite, x, y, def.w, def.h);
   c.shadowBlur = 0;
   c.globalAlpha = 1;
-  c.strokeStyle = '#44ddcc44'; c.lineWidth = 1;
+  // Dashed visibility circle
+  c.strokeStyle = '#44ddcc44';
+  c.lineWidth = 1;
   c.setLineDash([3, 3]);
-  c.beginPath(); c.arc(32, 32, 14, 0, Math.PI * 2); c.stroke();
+  c.beginPath(); c.arc(32, 32, 28, 0, Math.PI * 2); c.stroke();
   c.setLineDash([]);
 }
 
 function drawBarrel(cvs) {
-  const c = cvs.getContext('2d');
-  c.shadowColor = '#ff8822'; c.shadowBlur = 10;
-  c.fillStyle = '#aa5511'; c.fillRect(20, 16, 24, 32);
-  c.fillStyle = '#ff8822'; c.fillRect(22, 18, 20, 28);
-  c.fillStyle = '#ffcc44';
-  c.fillRect(20, 24, 24, 3);
-  c.fillRect(20, 37, 24, 3);
-  c.shadowBlur = 0;
-  c.fillStyle = '#ff2200';
-  c.font = 'bold 16px sans-serif'; c.textAlign = 'center';
-  c.fillText('!', 32, 36);
+  drawSpritePreview(cvs, 'barrel', '#ff8822');
 }
 
 function drawPrism(cvs) {
-  const c = cvs.getContext('2d');
-  c.shadowColor = '#aa44ff'; c.shadowBlur = 12;
-  c.fillStyle = '#6622aa';
-  c.beginPath(); c.moveTo(32, 10); c.lineTo(50, 32); c.lineTo(32, 54); c.lineTo(14, 32); c.closePath(); c.fill();
-  c.fillStyle = '#aa44ff';
-  c.beginPath(); c.moveTo(32, 14); c.lineTo(46, 32); c.lineTo(32, 50); c.lineTo(18, 32); c.closePath(); c.fill();
+  const c = drawSpritePreview(cvs, 'prism_normal', PRISM_COLORS.glow);
+  // Split ray indicators showing light splitting effect
+  c.shadowColor = PRISM_COLORS.glow;
+  c.shadowBlur = 4;
+  c.strokeStyle = '#cc66ff88';
+  c.lineWidth = 1;
+  // Incoming ray
+  c.beginPath(); c.moveTo(2, 32); c.lineTo(14, 32); c.stroke();
+  // Split outgoing rays
+  c.beginPath(); c.moveTo(50, 32); c.lineTo(62, 22); c.stroke();
+  c.beginPath(); c.moveTo(50, 32); c.lineTo(62, 32); c.stroke();
+  c.beginPath(); c.moveTo(50, 32); c.lineTo(62, 42); c.stroke();
   c.shadowBlur = 0;
-  c.strokeStyle = '#cc66ff88'; c.lineWidth = 1;
-  c.beginPath(); c.moveTo(50, 32); c.lineTo(62, 20); c.stroke();
-  c.beginPath(); c.moveTo(50, 32); c.lineTo(62, 44); c.stroke();
 }
 
 function drawApple(cvs) {
-  const c = cvs.getContext('2d');
-  c.shadowColor = '#ff2222'; c.shadowBlur = 8;
-  c.fillStyle = '#cc0000'; fc(c, 32, 35, 12);
-  c.fillStyle = '#ff2222'; fc(c, 32, 35, 9);
-  c.shadowBlur = 0;
-  c.fillStyle = '#ff666644'; fc(c, 28, 30, 4);
-  c.strokeStyle = '#44aa22'; c.lineWidth = 2;
-  c.beginPath(); c.moveTo(32, 23); c.lineTo(35, 17); c.stroke();
-  c.fillStyle = '#22cc44';
-  c.beginPath(); c.ellipse(38, 18, 5, 3, 0.5, 0, Math.PI * 2); c.fill();
+  drawSpritePreview(cvs, 'apple', '#ff4444');
 }
 
 function drawPortal(cvs) {
   const c = cvs.getContext('2d');
-  c.shadowColor = '#4488ff'; c.shadowBlur = 8;
-  c.strokeStyle = '#4488ff'; c.lineWidth = 3;
-  c.beginPath(); c.arc(20, 32, 10, 0, Math.PI * 2); c.stroke();
-  c.fillStyle = '#2266dd44'; fc(c, 20, 32, 8);
-  c.shadowColor = '#ff8844';
-  c.strokeStyle = '#ff8844';
-  c.beginPath(); c.arc(44, 32, 10, 0, Math.PI * 2); c.stroke();
-  c.fillStyle = '#dd662244'; fc(c, 44, 32, 8);
-  c.shadowBlur = 0;
-  c.strokeStyle = '#ffffff22'; c.lineWidth = 1;
-  c.setLineDash([3, 3]);
-  c.beginPath(); c.moveTo(30, 32); c.lineTo(34, 32); c.stroke();
+  // Blue portal (left) — particle ring style matching in-game rendering
+  _drawPortalRing(c, 20, 32, 'blue');
+  // Orange portal (right)
+  _drawPortalRing(c, 44, 32, 'orange');
+  // Connection indicator
+  c.strokeStyle = '#ffffff22';
+  c.lineWidth = 1;
+  c.setLineDash([2, 2]);
+  c.beginPath(); c.moveTo(29, 32); c.lineTo(35, 32); c.stroke();
   c.setLineDash([]);
 }
 
-function drawPiercingPickup(cvs) {
-  const c = cvs.getContext('2d');
-  c.shadowColor = '#ffaaff'; c.shadowBlur = 12;
-  c.fillStyle = '#ff88ff'; fc(c, 32, 32, 8);
-  c.fillStyle = '#ffccff'; fc(c, 32, 32, 4);
+function _drawPortalRing(c, cx, cy, type) {
+  const colors = type === 'blue'
+    ? [PORTAL_COLORS.blue, PORTAL_COLORS.blueBright, PORTAL_COLORS.blueGlow]
+    : [PORTAL_COLORS.orange, PORTAL_COLORS.orangeBright, PORTAL_COLORS.orangeGlow];
+  c.save();
+  c.shadowColor = colors[0];
+  c.shadowBlur = 8;
+  for (let layer = 0; layer < 3; layer++) {
+    const r = 3 + layer * 3;
+    const count = 5 + layer * 2;
+    const alpha = 0.9 - layer * 0.25;
+    const size = 2.5 - layer * 0.5;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      const px = cx + Math.cos(angle) * r;
+      const py = cy + Math.sin(angle) * r;
+      c.globalAlpha = alpha;
+      c.fillStyle = layer === 0 ? colors[1] : colors[0];
+      c.fillRect(Math.floor(px - size / 2), Math.floor(py - size / 2), size, size);
+    }
+  }
+  // Center glow
+  c.globalAlpha = 0.9;
+  c.fillStyle = colors[1];
+  fc(c, cx, cy, 3);
+  c.fillStyle = '#ffffff';
+  fc(c, cx, cy, 1.5);
+  c.globalAlpha = 1;
   c.shadowBlur = 0;
-  c.fillStyle = '#ffaaff88';
-  fc(c, 22, 24, 2); fc(c, 42, 22, 1.5);
-  fc(c, 24, 42, 1.5); fc(c, 44, 40, 2);
+  c.restore();
+}
+
+function drawPiercingPickup(cvs) {
+  const c = drawSpritePreview(cvs, 'pickup_piercing', '#ffaaff');
+  // Sparkle particles around the pickup
+  c.fillStyle = '#ffaaff66';
+  fc(c, 18, 22, 1.5); fc(c, 46, 20, 1.5);
+  fc(c, 20, 44, 1.5); fc(c, 44, 42, 1.5);
 }
 
 function drawLaser(cvs) {
@@ -283,7 +289,10 @@ function drawLaser(cvs) {
   c.shadowColor = '#00ffcc'; c.shadowBlur = 8;
   c.strokeStyle = '#00ffcc'; c.lineWidth = 2;
   c.beginPath(); c.moveTo(4, 48); c.lineTo(30, 16); c.lineTo(58, 38); c.lineTo(40, 56); c.stroke();
-  c.fillStyle = '#00ffcc'; fc(c, 4, 48, 3);
+  // Bounce points
+  c.fillStyle = '#00ffcc'; fc(c, 30, 16, 3); fc(c, 58, 38, 3);
+  // Bullet head
+  c.fillStyle = '#ffffff'; fc(c, 4, 48, 2);
   c.shadowBlur = 0;
 }
 
@@ -295,16 +304,21 @@ function drawPiercing(cvs) {
   c.fillStyle = '#ff88ff'; fc(c, 56, 32, 4);
   c.fillStyle = '#ffccff'; fc(c, 56, 32, 2);
   c.shadowBlur = 0;
-  c.fillStyle = '#ff446644'; fc(c, 20, 32, 6);
-  c.fillStyle = '#ff446644'; fc(c, 38, 32, 6);
+  // Pierced enemies (X marks)
+  c.strokeStyle = '#ff446666'; c.lineWidth = 1.5;
+  c.beginPath(); c.moveTo(16, 26); c.lineTo(24, 38); c.moveTo(24, 26); c.lineTo(16, 38); c.stroke();
+  c.beginPath(); c.moveTo(34, 26); c.lineTo(42, 38); c.moveTo(42, 26); c.lineTo(34, 38); c.stroke();
 }
 
 function drawShield(cvs) {
   const c = cvs.getContext('2d');
+  // Player dot
   c.fillStyle = '#00ff88'; fc(c, 32, 32, 5);
+  // Shield ring with glow
   c.shadowColor = '#00ccff'; c.shadowBlur = 10;
   c.strokeStyle = '#00ccff'; c.lineWidth = 2;
   c.beginPath(); c.arc(32, 32, 18, 0, Math.PI * 2); c.stroke();
+  // Highlight arcs
   c.strokeStyle = '#00ccff66'; c.lineWidth = 3;
   c.beginPath(); c.arc(32, 32, 18, -0.8, 0.8); c.stroke();
   c.beginPath(); c.arc(32, 32, 18, 2.3, 3.9); c.stroke();

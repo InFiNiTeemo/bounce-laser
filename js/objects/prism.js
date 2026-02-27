@@ -5,6 +5,9 @@ import { ctx, drawPixelRect, drawPixelCircle } from '../core/render.js';
 import { W, H, PRISM_COLORS, PRISM_MIN_LEVEL, MAX_BULLETS, PRISM_UNIT_W } from '../core/constants.js';
 import { game, player } from '../core/state.js';
 import { spawnParticles } from '../systems/particles.js';
+import { getSprite } from '../sprites/spriteLoader.js';
+import { SPRITE_DEFS } from '../sprites/spriteData.js';
+import { playSound } from '../systems/audio.js';
 
 // ---- PRISM COLLISION MATH ----
 
@@ -21,7 +24,9 @@ export function worldToLocal(px, py, prism) {
 
 export function bulletHitsPrism(bullet, prism) {
   const maxR = Math.hypot(prism.w, prism.h) / 2;
-  if (Math.hypot(bullet.x - prism.x, bullet.y - prism.y) > maxR + 6) return false;
+  const bdx = bullet.x - prism.x, bdy = bullet.y - prism.y;
+  const thr = maxR + 6;
+  if (bdx * bdx + bdy * bdy > thr * thr) return false;
   const local = worldToLocal(bullet.x, bullet.y, prism);
   const hw = prism.w / 2;
   const hh = prism.h / 2;
@@ -147,10 +152,12 @@ export function checkBulletPrismCollisions(bi) {
     const prism = game.prisms[j];
     if (!bulletHitsPrism(b, prism)) continue;
     spawnParticles(b.x, b.y, PRISM_COLORS.glow, 8);
+    playSound('bounce',{pitch:1.2});
     if (prism.type === 'destructible') {
       prism.hp--;
       prism.flashTimer = 0.15;
       if (prism.hp <= 0) {
+        playSound('prism_destroy');
         spawnParticles(prism.x, prism.y, PRISM_COLORS.destructible, 20);
         game.screenShake = 0.15;
         game.pickups.push({
@@ -210,11 +217,19 @@ export function drawPrism(p) {
   const isD = p.type === 'destructible';
   ctx.shadowColor = isD ? PRISM_COLORS.destructible : PRISM_COLORS.glow;
   ctx.shadowBlur = 8 + gi * 6;
-  // Layer 1: dark outer body (one continuous rect)
-  drawPixelRect(-hw, -hh, p.w, p.h, isD ? PRISM_COLORS.destructibleDark : PRISM_COLORS.bodyDark);
-  // Layer 2: bright inner body (one continuous rect, inset 2px)
-  drawPixelRect(-hw + 2, -hh + 2, p.w - 4, p.h - 4, isD ? PRISM_COLORS.destructible : PRISM_COLORS.body);
-  // Layer 3: end cap highlights (multi-segment only)
+  // Body sprite
+  const spriteKey = isD ? 'prism_destructible' : 'prism_normal';
+  const sprite = getSprite(spriteKey);
+  if (segments > 1) {
+    // Tile sprite per segment to avoid stretching glow artifacts
+    const segW = PRISM_UNIT_W;
+    for (let si = 0; si < segments; si++) {
+      ctx.drawImage(sprite, -hw + si * segW, -hh, segW, p.h);
+    }
+  } else {
+    ctx.drawImage(sprite, -hw, -hh, p.w, p.h);
+  }
+  // End cap highlights (multi-segment only)
   if (segments > 1) {
     const capW = 4;
     const capColor = isD
@@ -224,7 +239,7 @@ export function drawPrism(p) {
     ctx.fillRect(Math.floor(-hw + 2), Math.floor(-hh + 2), capW, p.h - 4);
     ctx.fillRect(Math.floor(hw - 2 - capW), Math.floor(-hh + 2), capW, p.h - 4);
   }
-  // Layer 4: segment divider lines (multi-segment only)
+  // Segment divider lines (multi-segment only)
   if (segments > 1) {
     const divColor = isD
       ? `rgba(170,68,136,${0.3 + gi * 0.2})`
@@ -235,9 +250,6 @@ export function drawPrism(p) {
       ctx.fillRect(Math.floor(dx), Math.floor(-hh + 3), 1, p.h - 6);
     }
   }
-  // Layer 5: center white stripe (continuous)
-  ctx.fillStyle = `rgba(255,255,255,${0.3 + gi * 0.2})`;
-  ctx.fillRect(Math.floor(-hw + 4), Math.floor(-1), p.w - 8, 2);
   ctx.shadowBlur = 0;
   // Health bar (destructible)
   if (isD && p.maxHp > 0) {
@@ -264,8 +276,10 @@ export function updatePickups(dt) {
       game.pickups.splice(i, 1);
       continue;
     }
-    if (Math.hypot(pk.x - player.x, pk.y - player.y) < player.size + 10) {
+    const pdx = pk.x - player.x, pdy = pk.y - player.y, pkr = player.size + 10;
+    if (pdx * pdx + pdy * pdy < pkr * pkr) {
       if (pk.type === 'piercing') game.piercingCount++;
+      playSound('pickup_collect');
       spawnParticles(pk.x, pk.y, '#ffaaff', 10);
       game.pickups.splice(i, 1);
     }
@@ -281,13 +295,11 @@ export function drawPickup(pk) {
   ctx.shadowBlur = 10 * pulse;
   const cx = pk.x;
   const cy = pk.y + bob;
-  drawPixelRect(cx - 1, cy - 6, 2, 2, '#ffaaff');
-  drawPixelRect(cx - 3, cy - 4, 6, 2, '#ffaaff');
-  drawPixelRect(cx - 5, cy - 2, 10, 2, '#ff88ff');
-  drawPixelRect(cx - 3, cy, 6, 2, '#ffaaff');
-  drawPixelRect(cx - 1, cy + 2, 2, 2, '#ffaaff');
-  drawPixelRect(cx - 1, cy - 2, 2, 2, '#ffffff');
+  const sprite = getSprite('pickup_piercing');
+  const def = SPRITE_DEFS.pickup_piercing;
+  ctx.drawImage(sprite, Math.floor(cx - def.cx), Math.floor(cy - def.cy), def.w, def.h);
   ctx.shadowBlur = 0;
+  // "穿透" label
   ctx.fillStyle = '#ffaaff';
   ctx.font = '7px "Press Start 2P"';
   ctx.textAlign = 'center';

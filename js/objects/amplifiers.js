@@ -35,7 +35,8 @@ export function checkBulletAmplifier(b) {
   for (const amp of game.amplifiers) {
     if (amp.charges <= 0) continue;
     if (b.amplified) continue;
-    if (Math.hypot(b.x - amp.x, b.y - amp.y) < AMPLIFIER_RADIUS) {
+    const adx = b.x - amp.x, ady = b.y - amp.y;
+    if (adx * adx + ady * ady < AMPLIFIER_RADIUS * AMPLIFIER_RADIUS) {
       b.amplified = true;
       b.ampDmg = (b.ampDmg || 0) + 1;
       b.vx *= 1.3;

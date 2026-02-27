@@ -8,6 +8,7 @@ import { drawPrism } from '../objects/prism.js';
 import { drawBarrel } from '../objects/barrels.js';
 import { drawPortal } from '../objects/portals.js';
 import { drawApple } from '../objects/apples.js';
+import { drawWall } from '../objects/walls.js';
 import { drawPixelCircle, drawPixelRect } from '../core/render.js';
 
 /**
@@ -80,6 +81,17 @@ export function renderEditor(editorCtx, state) {
         hp: p.hp || 3, maxHp: p.hp || 3,
         flashTimer: 0, glowPhase: performance.now() / 500,
         rotSpeed: 0, splitCount: p.splitCount || 2,
+      });
+    }
+  }
+
+  // Walls
+  for (const w of (ld.walls || [])) {
+    if (w.x != null) {
+      drawWall({
+        x: w.x, y: w.y, w: w.w || 40, h: w.h || 10,
+        angle: w.angle || 0, type: w.type || 'reflect',
+        glowPhase: performance.now() / 500,
       });
     }
   }
@@ -160,6 +172,17 @@ export function renderEditor(editorCtx, state) {
         editorCtx.rotate(p.angle || 0);
         const hw = ((p.w || 40) / 2) + 4;
         const hh = ((p.h || 12) / 2) + 4;
+        editorCtx.strokeRect(-hw, -hh, hw * 2, hh * 2);
+        editorCtx.restore();
+      }
+    } else if (sel.kind === 'wall') {
+      const w = ld.walls[sel.index];
+      if (w) {
+        editorCtx.save();
+        editorCtx.translate(w.x, w.y);
+        editorCtx.rotate(w.angle || 0);
+        const hw = ((w.w || 40) / 2) + 4;
+        const hh = ((w.h || 10) / 2) + 4;
         editorCtx.strokeRect(-hw, -hh, hw * 2, hh * 2);
         editorCtx.restore();
       }
@@ -249,10 +272,67 @@ export function renderEditor(editorCtx, state) {
       drawPixelCircle(gx, gy, 16, state.portalPhase === 0 ? '#4488ff' : '#ff8844');
     } else if (state.tool === 'apple') {
       drawApple({ x: gx, y: gy, size: 8, bobPhase: 0 });
+    } else if (state.tool === 'wall') {
+      if (state.wallDragActive) {
+        // Drag-to-create preview — extends from anchor toward mouse
+        const ww = state.wallDragWidth || 40;
+        const halfW = ww / 2;
+        const dir = state.wallDragDir || 1;
+        const wAngle = state.placementAngle || 0;
+        const cx = state.wallDragAnchorX + Math.cos(wAngle) * dir * halfW;
+        const cy = state.wallDragAnchorY + Math.sin(wAngle) * dir * halfW;
+        drawWall({
+          x: cx, y: cy, w: ww, h: 10,
+          angle: wAngle, type: state.wallSubtype || 'reflect',
+          glowPhase: performance.now() / 500,
+        });
+        // Width label
+        editorCtx.globalAlpha = 1;
+        editorCtx.font = '7px "Press Start 2P"';
+        editorCtx.fillStyle = '#44aacc';
+        editorCtx.textAlign = 'center';
+        editorCtx.fillText(ww + 'px', cx, cy - 16);
+        editorCtx.globalAlpha = 0.4;
+      } else {
+        drawWall({
+          x: gx, y: gy, w: 40, h: 10,
+          angle: state.placementAngle || 0, type: state.wallSubtype || 'reflect',
+          glowPhase: performance.now() / 500,
+        });
+        if (state.placementAngle) {
+          editorCtx.font = '7px "Press Start 2P"';
+          editorCtx.fillStyle = '#4488aa';
+          editorCtx.textAlign = 'center';
+          const deg = Math.round((state.placementAngle * 180 / Math.PI) % 360 + 360) % 360;
+          editorCtx.fillText(deg + '\u00B0', gx, gy - 16);
+        }
+      }
     } else if (state.tool === 'player') {
       drawPixelCircle(gx, gy, 14, '#00ff88');
     }
     editorCtx.globalAlpha = 1;
+  }
+
+  // Endpoint snap indicator (shows when cursor snaps to prism/wall endpoint)
+  if (state.snappedEndpoint && (state.tool === 'prism' || state.tool === 'wall')) {
+    const ep = state.snappedEndpoint;
+    editorCtx.save();
+    editorCtx.strokeStyle = '#ffdd44';
+    editorCtx.fillStyle = 'rgba(255,221,68,0.15)';
+    editorCtx.lineWidth = 2;
+    editorCtx.shadowColor = '#ffdd44';
+    editorCtx.shadowBlur = 8;
+    editorCtx.beginPath();
+    editorCtx.arc(ep.x, ep.y, 8, 0, Math.PI * 2);
+    editorCtx.fill();
+    editorCtx.stroke();
+    // Crosshair
+    editorCtx.beginPath();
+    editorCtx.moveTo(ep.x - 12, ep.y); editorCtx.lineTo(ep.x + 12, ep.y);
+    editorCtx.moveTo(ep.x, ep.y - 12); editorCtx.lineTo(ep.x, ep.y + 12);
+    editorCtx.stroke();
+    editorCtx.shadowBlur = 0;
+    editorCtx.restore();
   }
 
   // Eraser cursor
@@ -298,6 +378,7 @@ function getEntitySize(kind, entity) {
     return entity.type === 'tank' ? 16 : (entity.type === 'sniper' ? 10 : (entity.type === 'healer' || entity.type === 'ghost') ? 11 : 12);
   }
   if (kind === 'prism') return Math.max((entity.w || 40) / 2, (entity.h || 12) / 2, 20);
+  if (kind === 'wall') return Math.max((entity.w || 40) / 2, (entity.h || 10) / 2, 20);
   if (kind === 'barrel') return 10;
   if (kind === 'apple') return 8;
   return 14;

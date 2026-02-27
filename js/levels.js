@@ -14,6 +14,7 @@
  *   apples   - Array of apple defs.  (optional: x, y)
  *   gravityWells - Array of gravity well defs. Fields: type ('attract'|'repel'|'pulse')  (optional: x, y, hp)
  *   amplifiers   - Array of amplifier defs.    Fields: charges  (optional: x, y)
+ *   walls        - Array of wall defs.        Fields: type ('reflect'|'solid')  (optional: x, y, w, h, angle)
  */
 
 export const BUILTIN_LEVELS = [
@@ -96,32 +97,32 @@ export const BUILTIN_LEVELS = [
       { type: 'destructible', splitCount: 2, hp: 3 },
     ],
     barrels: [{}, {}],
-    portals: [],
+    portals: [{}],
     apples: [{}, {}],
   },
 
-  // Level 6 — 传送: portals appear, rotating prisms
+  // Level 6 — 镜像守卫 (Boss)
   {
-    id: 6, name: '传送', shots: 15,
-    enemies: [
-      { type: 'basic', hp: 2, canShoot: true },
-      { type: 'basic', hp: 2, canShoot: true },
-      { type: 'basic', hp: 2, canShoot: true },
-      { type: 'basic', hp: 2, canShoot: true },
-      { type: 'patrol', hp: 1, canShoot: false },
-      { type: 'patrol', hp: 1, canShoot: false },
-      { type: 'patrol', hp: 1, canShoot: false },
-      { type: 'tank', hp: 4, canShoot: true },
-      { type: 'sniper', hp: 1, canShoot: true },
-    ],
+    id: 6, name: '镜像守卫', shots: 25,
+    boss: { type: 'mirror_guardian', hp: 30 },
+    enemies: [],
     prisms: [
-      { type: 'static', splitCount: 2 },
-      { type: 'rotating', splitCount: 2 },
-      { type: 'destructible', splitCount: 2, hp: 3 },
+      { type: 'static', splitCount: 2, x: 160, y: 120, angle: 0.5 },
+      { type: 'static', splitCount: 2, x: 480, y: 120, angle: 2.6 },
+      { type: 'static', splitCount: 2, x: 160, y: 360, angle: 5.8 },
+      { type: 'static', splitCount: 2, x: 480, y: 360, angle: 3.7 },
     ],
-    barrels: [{}, {}],
-    portals: [{}],
-    apples: [{}, {}],
+    barrels: [
+      { x: 100, y: 240 },
+      { x: 540, y: 240 },
+    ],
+    portals: [],
+    apples: [
+      { x: 80, y: 440 },
+      { x: 560, y: 440 },
+    ],
+    fixedLayout: true,
+    playerSpawn: { x: 320, y: 240 },
   },
 
   // Level 7 — 重甲: 2 tanks, 3 prisms with split-3

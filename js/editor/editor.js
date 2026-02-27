@@ -20,6 +20,7 @@ const state = {
   tool: 'select',
   enemySubtype: 'basic',
   prismSubtype: 'static',
+  wallSubtype: 'reflect',
   selected: null,
   gridSnap: true,
   gridSize: 32,
@@ -35,6 +36,12 @@ const state = {
   prismDragAnchorY: 0,
   prismDragSegments: 1,
   prismDragDir: 1,
+  wallDragActive: false,
+  wallDragAnchorX: 0,
+  wallDragAnchorY: 0,
+  wallDragWidth: 40,
+  wallDragDir: 1,
+  snappedEndpoint: null,
   levelData: null,
 };
 
@@ -59,6 +66,7 @@ function createEmptyLevel() {
     barrels: [],
     portals: [],
     apples: [],
+    walls: [],
   };
 }
 

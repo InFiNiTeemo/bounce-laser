@@ -2,9 +2,10 @@
  * loop.js - Main game loop (update + draw)
  */
 import { ctx } from './render.js';
-import { W, H, COLORS } from './constants.js';
+import { W, H, COLORS, SCALE } from './constants.js';
 import { game, player } from './state.js';
 import { drawBackground } from './render.js';
+import { clearGrid, insertEntity } from '../systems/spatialGrid.js';
 import { drawPlayer } from '../entities/player.js';
 import { drawShield } from '../systems/shield.js';
 import { drawEnemy, updateEnemyAI } from '../entities/enemies.js';
@@ -17,14 +18,18 @@ import { updateBarrels, drawBarrel } from '../objects/barrels.js';
 import { updateApples, drawApple } from '../objects/apples.js';
 import { updateGravityWells, drawGravityWell } from '../objects/gravityWells.js';
 import { updateAmplifiers, drawAmplifier } from '../objects/amplifiers.js';
+import { updateWalls, drawWall } from '../objects/walls.js';
 import { updateStartDemo, drawStartDemo } from '../ui/startDemo.js';
 import { showGameOver, showLevelClear, updateUI } from '../ui/screens.js';
 import { updateTutorial, drawTutorialOverlay } from '../systems/tutorial.js';
+import { playSound } from '../systems/audio.js';
+import { updateCombo, drawCombo, getSlowMoFactor } from '../systems/combo.js';
+import { updateBoss, drawBoss, isBossAlive } from '../entities/boss.js';
 
 let lastTime = 0;
 
 export function gameLoop(timestamp) {
-  const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
+  const rawDt = Math.min((timestamp - lastTime) / 1000, 0.05);
   lastTime = timestamp;
 
   // Skip game loop when editor is active
@@ -34,11 +39,13 @@ export function gameLoop(timestamp) {
   }
 
   if (!game.running && !game.paused) {
-    updateStartDemo(dt);
+    updateStartDemo(rawDt);
     drawStartDemo();
   }
 
   if (game.running) {
+    const dt = rawDt * getSlowMoFactor();
+
     game.gunAngle = Math.atan2(game.mouseY - player.y, game.mouseX - player.x);
 
     if (player.invincibleTimer > 0) {
@@ -52,6 +59,7 @@ export function gameLoop(timestamp) {
         game.shieldEnergy = 0;
         game.shieldActive = false;
         game.shieldCooldown = true;
+        playSound('shield_off');
       }
     } else {
       game.shieldEnergy = Math.min(
@@ -76,10 +84,26 @@ export function gameLoop(timestamp) {
     updateApples(dt);
     updateGravityWells(dt);
     updateAmplifiers(dt);
+    updateWalls(dt);
+
+    if (game.boss) updateBoss(dt);
+
+    // Build spatial hash grid for broadphase collision
+    clearGrid();
+    for (const e of game.enemies) {
+      if (e.type === 'ghost' && !e.visible) continue;
+      e._gt = 1; // enemy
+      insertEntity(e, e.size + 4);
+    }
+    for (const a of game.apples) { a._gt = 2; insertEntity(a, a.size + 4); } // apple
+    for (const b of game.barrels) { if (!b.exploded) { b._gt = 3; insertEntity(b, b.size + 4); } } // barrel
+    for (const pb of game.bullets) { pb._gt = 4; insertEntity(pb, 8); } // playerBullet
+
     updateBullets(dt);
     updateEnemyBullets(dt);
     updateBarrels(dt);
     updateChainLightnings(dt);
+    updateCombo(rawDt);
     updateParticles(dt);
 
     if (game.screenShake > 0) {
@@ -102,17 +126,20 @@ export function gameLoop(timestamp) {
       updateTutorial(dt);
     }
 
-    if (game.enemies.length === 0 && game.playerAlive && !game.tutorialActive) {
+    const bossCleared = !game.boss || !isBossAlive();
+    if (game.enemies.length === 0 && bossCleared && game.playerAlive && !game.tutorialActive && !game.bossDeathSequence) {
       showLevelClear();
     }
 
-    if (game.shots <= 0 && game.bullets.length === 0 && game.enemies.length > 0 && game.playerAlive && !game.tutorialActive) {
+    const hasEnemies = game.enemies.length > 0 || (game.boss && isBossAlive());
+    if (game.shots <= 0 && game.bullets.length === 0 && hasEnemies && game.playerAlive && !game.tutorialActive) {
       showGameOver('\u5F39\u836F\u8017\u5C3D!');
     }
   }
 
   // ---- Draw ----
   ctx.save();
+  ctx.scale(SCALE, SCALE);
   if (game.screenShake > 0) {
     ctx.translate(
       (Math.random() - 0.5) * game.screenShake * 12,
@@ -125,11 +152,13 @@ export function gameLoop(timestamp) {
   game.portals.forEach(p => drawPortal(p));
   game.gravityWells.forEach(gw => drawGravityWell(gw));
   game.prisms.forEach(p => drawPrism(p));
+  game.walls.forEach(w => drawWall(w));
   game.barrels.forEach(b => drawBarrel(b));
   game.amplifiers.forEach(a => drawAmplifier(a));
   game.pickups.forEach(pk => drawPickup(pk));
   game.apples.forEach(a => drawApple(a));
   game.enemies.forEach(e => drawEnemy(e));
+  if (game.boss) drawBoss();
   game.enemyBullets.forEach(eb => drawEnemyBullet(eb));
   game.bullets.forEach(b => drawBullet(b));
   drawChainLightnings();
@@ -138,6 +167,7 @@ export function gameLoop(timestamp) {
   if (game.playerAlive && game.shieldActive) drawShield();
 
   drawParticles();
+  drawCombo();
 
   // 二次生命触发特效：扩散冲击波环
   if (game.secondLifeRing) {

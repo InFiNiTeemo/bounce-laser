@@ -1,5 +1,6 @@
 import { game } from '../core/state.js';
 import { nextLevel } from '../ui/screens.js';
+import { playSound } from './audio.js';
 
 const UPGRADES=[
   {id:'maxHp',name:'\u751F\u547D\u5F3A\u5316',color:'#ff6688',desc:'\u6700\u5927HP+1 \u5E76\u6062\u590D\u6EE1\u8840',apply(){game.playerMaxHp++;game.playerHp=game.playerMaxHp;},getValue(){return `${game.playerMaxHp} \u2192 ${game.playerMaxHp+1}`;}},
@@ -28,4 +29,4 @@ let currentUpgradeChoices=[];
 
 export function showUpgradePanel(){const panel=document.getElementById('upgradePanel');panel.innerHTML='';const shuffled=[...UPGRADES].sort(()=>Math.random()-0.5);currentUpgradeChoices=shuffled.slice(0,3);currentUpgradeChoices.forEach((upg,idx)=>{const card=document.createElement('div');card.className='upgrade-card';card.innerHTML=`<div class="upgrade-name" style="color:${upg.color}">${upg.name}</div><div class="upgrade-value">${upg.getValue()}</div><div class="upgrade-desc">${upg.desc}</div><div class="upgrade-key">${idx+1}</div>`;card.addEventListener('click',()=>applyUpgrade(idx));panel.appendChild(card);});}
 
-export function applyUpgrade(index){if(index<0||index>=currentUpgradeChoices.length)return;currentUpgradeChoices[index].apply();currentUpgradeChoices=[];nextLevel();}
+export function applyUpgrade(index){if(index<0||index>=currentUpgradeChoices.length)return;playSound('upgrade_select');currentUpgradeChoices[index].apply();currentUpgradeChoices=[];nextLevel();}

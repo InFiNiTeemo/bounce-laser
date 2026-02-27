@@ -1,6 +1,13 @@
-import { ctx, drawPixelRect, drawPixelCircle } from '../core/render.js';
-import { COLORS } from '../core/constants.js';
-import { game, player } from '../core/state.js';
+/**
+ * BACKUP — Original drawPlayer() from js/entities/player.js
+ * This file is for archival only; NOT imported by the game.
+ *
+ * Dependencies: ctx, drawPixelRect, drawPixelCircle from core/render.js
+ * Colors used: COLORS.player (#00ff88), COLORS.playerDark (#009955),
+ *              COLORS.gun (#cccccc), COLORS.laserGlow (#00ffcc)
+ * State used:  player (x, y, size, invincibleTimer, gunLength),
+ *              game (gunAngle, secondLife, secondLifeUsed)
+ */
 
 export function drawPlayer() {
   const p = player;
@@ -23,27 +30,34 @@ export function drawPlayer() {
     ctx.restore();
   }
 
-  // Body (procedural — no PNG, eyes drawn separately below)
-  drawPixelCircle(p.x, p.y + s + 2, s * 0.6, 'rgba(0,0,0,0.3)'); // shadow
-  drawPixelCircle(p.x, p.y, s, COLORS.playerDark);                 // outer
-  drawPixelCircle(p.x, p.y, s - 3, COLORS.player);                 // inner
+  // Shadow
+  drawPixelCircle(p.x, p.y + s + 2, s * 0.6, 'rgba(0,0,0,0.3)');
+  // Body outer
+  drawPixelCircle(p.x, p.y, s, COLORS.playerDark);   // #009955
+  // Body inner
+  drawPixelCircle(p.x, p.y, s - 3, COLORS.player);   // #00ff88
 
   // Eyes (follow gun angle)
-  const ex = Math.cos(game.gunAngle) * 4, ey = Math.sin(game.gunAngle) * 4;
+  const ex = Math.cos(game.gunAngle) * 4;
+  const ey = Math.sin(game.gunAngle) * 4;
   drawPixelRect(p.x - 4 + ex, p.y - 3 + ey, 3, 3, '#003322');
   drawPixelRect(p.x + 2 + ex, p.y - 3 + ey, 3, 3, '#003322');
 
   // Gun barrel
   const gx = p.x + Math.cos(game.gunAngle) * p.gunLength;
   const gy = p.y + Math.sin(game.gunAngle) * p.gunLength;
-  ctx.strokeStyle = COLORS.gun;
+  ctx.strokeStyle = COLORS.gun;   // #cccccc
   ctx.lineWidth = 4;
-  ctx.shadowColor = COLORS.laserGlow;
+  ctx.shadowColor = COLORS.laserGlow;   // #00ffcc
   ctx.shadowBlur = 6;
   ctx.beginPath();
-  ctx.moveTo(p.x + Math.cos(game.gunAngle) * s, p.y + Math.sin(game.gunAngle) * s);
+  ctx.moveTo(
+    p.x + Math.cos(game.gunAngle) * s,
+    p.y + Math.sin(game.gunAngle) * s
+  );
   ctx.lineTo(gx, gy);
   ctx.stroke();
   ctx.shadowBlur = 0;
+  // Gun tip
   drawPixelCircle(gx, gy, 3, COLORS.laserGlow);
 }

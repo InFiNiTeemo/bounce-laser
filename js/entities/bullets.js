@@ -8,6 +8,11 @@ import { checkBulletPortalCollision } from '../objects/portals.js';
 import { explodeBarrel } from '../objects/barrels.js';
 import { applyGravityToVelocity, damageGravityWell } from '../objects/gravityWells.js';
 import { checkBulletAmplifier } from '../objects/amplifiers.js';
+import { checkBulletWallCollisions } from '../objects/walls.js';
+import { playSound } from '../systems/audio.js';
+import { registerKill } from '../systems/combo.js';
+import { queryNearby } from '../systems/spatialGrid.js';
+import { damageBoss, isBossAlive } from './boss.js';
 
 const explosionRings = [];
 
@@ -26,10 +31,12 @@ if(count===1){a=game.gunAngle;}
 else{a=game.gunAngle-spread/2+(spread*k/(count-1));}
 const crit=game.critChance>0&&Math.random()<game.critChance;
 game.bullets.push(makeBullet(gx,gy,Math.cos(a)*speed,Math.sin(a)*speed,ip,crit));}
-if(count>1)spawnParticles(gx,gy,'#44ffcc',count*3);}
+if(count>1)spawnParticles(gx,gy,'#44ffcc',count*3);
+playSound('shoot');}
 
 /** Helper: award kill rewards for an enemy */
 function killEnemy(e,bounces,shieldReflected){
+playSound('enemy_death');
 spawnParticles(e.x,e.y,'#ffcc44',16);
 if(game.playerHp<game.playerMaxHp&&Math.random()<0.25){game.apples.push({x:e.x,y:e.y,size:8,bobPhase:0});}
 const idx=game.enemies.indexOf(e);
@@ -38,8 +45,11 @@ game.killedEnemies++;
 if(bounces>0)game.bounceKills++;
 if(shieldReflected)game.shieldReflectKills++;
 game.shots+=e.maxHp+game.ammoRecoveryBonus;
-game.score+=(e.type==='tank'?200:100)*game.level;
-game.screenShake=0.2;
+const baseScore=(e.type==='tank'?200:100)*game.level;
+game.score+=baseScore;
+registerKill(e.x,e.y,baseScore);
+const shakeBoost=game.combo>=8?2.0:game.combo>=5?1.5:1.0;
+game.screenShake=Math.max(game.screenShake,0.2*shakeBoost);
 triggerChainLightning(e);}
 
 /** Chain lightning on enemy kill */
@@ -71,6 +81,7 @@ spawnParticles(target.x,target.y,'#aaccff',14);
 spawnParticles(target.x,target.y,'#ffffff',6);
 game.chainLightnings.push({x1:deadEnemy.x,y1:deadEnemy.y,x2:target.x,y2:target.y,life:0.5,maxLife:0.5});
 game.screenShake=Math.max(game.screenShake,0.15);
+playSound('chain_lightning');
 if(target.hp<=0){
 killEnemy(target,0,false);
 // Level 3: 30% chance secondary chain
@@ -105,21 +116,23 @@ spawnParticles(bx,by,'#ff4444',12);spawnParticles(bx,by,'#ff8844',10);spawnParti
 game.screenShake=Math.max(game.screenShake,0.2);
 // Expanding ring visual
 explosionRings.push({x:bx,y:by,radius:0,maxRadius:finalRadius,life:0.4,maxLife:0.4});
+playSound('bullet_explode');
 // Damage enemies
 for(let j=game.enemies.length-1;j>=0;j--){
 const e=game.enemies[j];
 if(e.type==='ghost'&&!e.visible)continue;
-if(Math.hypot(bx-e.x,by-e.y)<finalRadius){
+{const edx=bx-e.x,edy=by-e.y;if(edx*edx+edy*edy<finalRadius*finalRadius){
 e.hp-=damage;e.flashTimer=0.15;spawnParticles(e.x,e.y,COLORS.enemy,6);
-if(e.hp<=0)killEnemy(e,0,false);}}
+if(e.hp<=0)killEnemy(e,0,false);}}}
 // Chain barrels
+const fr2=finalRadius*finalRadius;
 for(let j=game.barrels.length-1;j>=0;j--){
 const barrel=game.barrels[j];
-if(!barrel.exploded&&Math.hypot(bx-barrel.x,by-barrel.y)<finalRadius)explodeBarrel(barrel);}
+if(!barrel.exploded){const bdx=bx-barrel.x,bdy=by-barrel.y;if(bdx*bdx+bdy*bdy<fr2)explodeBarrel(barrel);}}
 // Clear enemy bullets
 for(let j=game.enemyBullets.length-1;j>=0;j--){
 const eb=game.enemyBullets[j];
-if(Math.hypot(bx-eb.x,by-eb.y)<finalRadius){spawnParticles(eb.x,eb.y,COLORS.warning,4);game.enemyBullets.splice(j,1);}}}
+const ebdx=bx-eb.x,ebdy=by-eb.y;if(ebdx*ebdx+ebdy*ebdy<fr2){spawnParticles(eb.x,eb.y,COLORS.warning,4);game.enemyBullets.splice(j,1);}}}
 
 export function updateBullets(dt){for(let i=game.bullets.length-1;i>=0;i--){const b=game.bullets[i];
 b.trail.push({x:b.x,y:b.y});if(b.trail.length>12)b.trail.shift();
@@ -136,36 +149,67 @@ const spd=Math.hypot(b.vx,b.vy),na=curA+c;
 b.vx=Math.cos(na)*spd;b.vy=Math.sin(na)*spd;}}
 applyGravityToVelocity(b);
 checkBulletAmplifier(b);
-for(let gj=game.gravityWells.length-1;gj>=0;gj--){const gw=game.gravityWells[gj];if(gw.hp<0)continue;if(Math.hypot(b.x-gw.x,b.y-gw.y)<8+4){damageGravityWell(gw,b.crit?game.bulletDamage*2:game.bulletDamage);game.bullets.splice(i,1);break;}}
+for(let gj=game.gravityWells.length-1;gj>=0;gj--){const gw=game.gravityWells[gj];if(gw.hp<0)continue;const gdx=b.x-gw.x,gdy=b.y-gw.y;if(gdx*gdx+gdy*gdy<144){damageGravityWell(gw,b.crit?game.bulletDamage*2:game.bulletDamage);game.bullets.splice(i,1);break;}}
 if(!game.bullets[i])continue;
 if(checkBulletPrismCollisions(i))continue;
+if(checkBulletWallCollisions(i))continue;
 checkBulletPortalCollision(b);
-if(b.x<=6||b.x>=W-6){if(b.piercing&&!b.piercingUsed){b.piercingUsed=true;b.x=b.x<=6?W-8:8;spawnParticles(b.x,b.y,'#ffaaff',6);}else{b.vx*=-1;b.x=b.x<=6?6:W-6;b.bounces++;spawnParticles(b.x,b.y,COLORS.laserGlow,4);}}
-if(b.y<=6||b.y>=H-6){if(b.piercing&&!b.piercingUsed){b.piercingUsed=true;b.y=b.y<=6?H-8:8;spawnParticles(b.x,b.y,'#ffaaff',6);}else{b.vy*=-1;b.y=b.y<=6?6:H-6;b.bounces++;spawnParticles(b.x,b.y,COLORS.laserGlow,4);}}
-for(let j=game.enemies.length-1;j>=0;j--){const e=game.enemies[j];
-if(e.type==='ghost'&&!e.visible)continue;
-if(Math.hypot(b.x-e.x,b.y-e.y)<e.size+4){
+if(b.x<=6||b.x>=W-6){if(b.piercing&&!b.piercingUsed){b.piercingUsed=true;b.x=b.x<=6?W-8:8;spawnParticles(b.x,b.y,'#ffaaff',6);}else{b.vx*=-1;b.x=b.x<=6?6:W-6;b.bounces++;spawnParticles(b.x,b.y,COLORS.laserGlow,4);playSound('bounce',{pitch:0.9+Math.random()*0.2});}}
+if(b.y<=6||b.y>=H-6){if(b.piercing&&!b.piercingUsed){b.piercingUsed=true;b.y=b.y<=6?H-8:8;spawnParticles(b.x,b.y,'#ffaaff',6);}else{b.vy*=-1;b.y=b.y<=6?6:H-6;b.bounces++;spawnParticles(b.x,b.y,COLORS.laserGlow,4);playSound('bounce',{pitch:0.9+Math.random()*0.2});}}
+// Boss collision
+if(game.boss&&isBossAlive()){
+const boss=game.boss;
+if(!boss.invulnerable&&!boss.phaseTransitioning&&boss.deathTimer<=0){
+const bdx=b.x-boss.x,bdy=b.y-boss.y,brr=boss.hitboxRadius+4;
+if(bdx*bdx+bdy*bdy<brr*brr){
 const dmg=(b.crit?game.bulletDamage*2:game.bulletDamage)+(b.ampDmg||0);
-e.hp-=dmg;e.flashTimer=0.15;spawnParticles(e.x,e.y,COLORS.enemy,8);
-if(b.crit){spawnParticles(e.x,e.y,'#ffdd44',12);game.screenShake=Math.max(game.screenShake,0.15);}
-if(e.hp<=0){killEnemy(e,b.bounces,b.shieldReflected);}
-game.bullets.splice(i,1);break;}}
-if(!game.bullets[i])continue;
-for(let j=game.apples.length-1;j>=0;j--){const a=game.apples[j];
-if(Math.hypot(b.x-a.x,b.y-a.y)<a.size+4){spawnParticles(a.x,a.y,'#ff4444',12);spawnParticles(a.x,a.y,'#44dd22',6);game.apples.splice(j,1);if(game.playerHp<game.playerMaxHp){game.playerHp++;}game.score+=50;game.screenShake=0.1;game.bullets.splice(i,1);break;}}
-if(!game.bullets[i])continue;
-for(let j=game.barrels.length-1;j>=0;j--){const barrel=game.barrels[j];if(barrel.exploded)continue;
-if(Math.hypot(b.x-barrel.x,b.y-barrel.y)<barrel.size+4){explodeBarrel(barrel);game.bullets.splice(i,1);break;}}
+damageBoss(dmg,b);
+spawnParticles(boss.x,boss.y,'#cc66ff',10);
+playSound(b.crit?'crit_hit':'enemy_hit');
+if(b.crit){spawnParticles(boss.x,boss.y,'#ffdd44',12);game.screenShake=Math.max(game.screenShake,0.15);}
+game.bullets.splice(i,1);continue;}}
+// Clone collision
+let cloneHit=false;
+for(const clone of(boss.clones||[])){
+if(clone.hp<=0)continue;
+const cdx=b.x-clone.x,cdy=b.y-clone.y,crr=clone.size+4;
+if(cdx*cdx+cdy*cdy<crr*crr){
+const dmg=(b.crit?game.bulletDamage*2:game.bulletDamage)+(b.ampDmg||0);
+clone.hp-=dmg;clone.flashTimer=0.15;
+spawnParticles(clone.x,clone.y,'#cc88ff',8);
+playSound('enemy_hit');
+if(clone.hp<=0){boss.stunTimer=2.0;spawnParticles(clone.x,clone.y,'#ffffff',20);playSound('boss_stun');game.screenShake=Math.max(game.screenShake,0.3);}
+game.bullets.splice(i,1);cloneHit=true;break;}}
+if(cloneHit)continue;}
+{ // Spatial grid collision: enemies, apples, barrels
+const nearby=queryNearby(b.x,b.y);let hit=false;
+for(let ni=0;ni<nearby.length;ni++){const ent=nearby[ni];
+if(ent._gt===1){// enemy
+const dx=b.x-ent.x,dy=b.y-ent.y,rr=ent.size+4;
+if(dx*dx+dy*dy<rr*rr){
+const dmg=(b.crit?game.bulletDamage*2:game.bulletDamage)+(b.ampDmg||0);
+ent.hp-=dmg;ent.flashTimer=0.15;spawnParticles(ent.x,ent.y,COLORS.enemy,8);
+playSound(b.crit?'crit_hit':'enemy_hit');
+if(b.crit){spawnParticles(ent.x,ent.y,'#ffdd44',12);game.screenShake=Math.max(game.screenShake,0.15);}
+if(ent.hp<=0){killEnemy(ent,b.bounces,b.shieldReflected);}
+game.bullets.splice(i,1);hit=true;break;}}
+else if(ent._gt===2){// apple
+const dx=b.x-ent.x,dy=b.y-ent.y,rr=ent.size+4;
+if(dx*dx+dy*dy<rr*rr){spawnParticles(ent.x,ent.y,'#ff4444',12);spawnParticles(ent.x,ent.y,'#44dd22',6);const ai=game.apples.indexOf(ent);if(ai!==-1)game.apples.splice(ai,1);if(game.playerHp<game.playerMaxHp){game.playerHp++;}game.score+=50;game.screenShake=0.1;playSound('apple_pickup');game.bullets.splice(i,1);hit=true;break;}}
+else if(ent._gt===3){// barrel
+if(ent.exploded)continue;const dx=b.x-ent.x,dy=b.y-ent.y,rr=ent.size+4;
+if(dx*dx+dy*dy<rr*rr){explodeBarrel(ent);game.bullets.splice(i,1);hit=true;break;}}}
+if(hit)continue;}
 if(!game.bullets[i])continue;
 if((b.bounces>0||b.fromPrism)&&game.shieldActive){const dist=Math.hypot(b.x-player.x,b.y-player.y);
 if(dist<SHIELD_RADIUS&&dist>0){const nx=(b.x-player.x)/dist,ny=(b.y-player.y)/dist,dot=b.vx*nx+b.vy*ny;
 b.vx-=2*dot*nx;b.vy-=2*dot*ny;b.x=player.x+nx*(SHIELD_RADIUS+2);b.y=player.y+ny*(SHIELD_RADIUS+2);
 b.bounces++;b.shieldReflected=true;if(game.tutorialActive)game.tutorialShieldReflects++;
-game.shieldEnergy=Math.max(0,game.shieldEnergy-Math.round(8*game.shieldDrainMult));spawnParticles(b.x,b.y,COLORS.shield,6);
+game.shieldEnergy=Math.max(0,game.shieldEnergy-Math.round(8*game.shieldDrainMult));spawnParticles(b.x,b.y,COLORS.shield,6);playSound('shield_reflect');
 if(game.shieldEnergy<=0){game.shieldActive=false;game.shieldCooldown=true;}continue;}}
 if(b.portalGrace>0)b.portalGrace--;
 if((b.bounces>0||b.fromPrism)&&player.invincibleTimer<=0&&b.portalGrace<=0){
-if(Math.hypot(b.x-player.x,b.y-player.y)<player.size+3){game.bullets.splice(i,1);if(damagePlayer('\u88AB\u81EA\u5DF1\u7684\u6FC0\u5149\u51FB\u6740\u4E86!'))return;continue;}}
+{const pdx=b.x-player.x,pdy=b.y-player.y,pr=player.size+3;if(pdx*pdx+pdy*pdy<pr*pr){game.bullets.splice(i,1);if(damagePlayer('\u88AB\u81EA\u5DF1\u7684\u6FC0\u5149\u51FB\u6740\u4E86!'))return;continue;}}}
 if(b.bounces>b.maxBounces||b.life<=0){
 if(game.explosiveLevel>0){explodeBullet(b.x,b.y);}else{spawnParticles(b.x,b.y,COLORS.bullet,3);}
 game.bullets.splice(i,1);}}}

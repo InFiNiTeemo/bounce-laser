@@ -1,6 +1,10 @@
 // constants.js - All game constants
 export const W = 640, H = 480;
 export const PX = 2;
+
+// Physical canvas resolution (game logic stays at W x H)
+export const CANVAS_W = 1080, CANVAS_H = 810;
+export const SCALE = CANVAS_W / W; // 1.6875
 export const SHIELD_RADIUS = 40;
 export const MAX_LEVEL = 24;
 export const MAX_BULLETS = 50;
@@ -49,6 +53,19 @@ export const AMPLIFIER_RADIUS = 14;
 export const AMPLIFIER_COLORS = {
   body: '#44ff88', bodyDark: '#22aa55', glow: '#88ffbb',
   charge: '#ffcc44', flash: '#ffffff',
+};
+
+export const WALL_COLORS = {
+  reflect: { body: '#44aacc', bodyDark: '#226688', glow: '#66ddff', stripe: '#88eeff', edge: '#225577' },
+  solid:   { body: '#cc6644', bodyDark: '#883322', glow: '#ff8866', stripe: '#ff9977', edge: '#662211' },
+};
+
+export const BOSS_COLORS = {
+  body: '#cc66ff', bodyDark: '#8833cc', glow: '#ee88ff',
+  core: '#ffffff', shield: '#aa44ff',
+  beam: '#ff44ff', beamGlow: '#ff88ff',
+  hpBar: '#cc66ff', hpBarBg: '#440066',
+  phase1: '#44ddff', phase2: '#ff88cc', phase3: '#ff4444',
 };
 
 // Demo canvas dimensions

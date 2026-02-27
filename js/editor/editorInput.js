@@ -50,6 +50,17 @@ function hitTest(ld, mx, my) {
     const a = ld.apples[i];
     if (a.x != null && Math.hypot(mx - a.x, my - a.y) < HIT_RADIUS.apple) return { kind: 'apple', index: i };
   }
+  for (let i = (ld.walls || []).length - 1; i >= 0; i--) {
+    const w = ld.walls[i];
+    if (w.x == null) continue;
+    const ww = w.w || 40, wh = w.h || 10;
+    const maxR = Math.hypot(ww, wh) / 2 + 6;
+    if (Math.hypot(mx - w.x, my - w.y) > maxR) continue;
+    const local = worldToLocal(mx, my, { x: w.x, y: w.y, angle: w.angle || 0 });
+    if (Math.abs(local.x) <= ww / 2 + 6 && Math.abs(local.y) <= wh / 2 + 6) {
+      return { kind: 'wall', index: i };
+    }
+  }
   return null;
 }
 
@@ -65,6 +76,7 @@ function getArray(ld, kind) {
   if (kind === 'barrel') return ld.barrels;
   if (kind === 'apple') return ld.apples;
   if (kind === 'portal') return ld.portals;
+  if (kind === 'wall') return ld.walls;
   return null;
 }
 
@@ -77,6 +89,7 @@ export function initEditorInput(editorCanvas, state, onUpdate) {
   let stretchStartW = 40;
   let stretchStartH = 12;
   let prismDragging = false; // drag-to-create long prism
+  let wallDragging = false;  // drag-to-create wall
 
   function canvasCoords(e) {
     const r = editorCanvas.getBoundingClientRect();
@@ -88,12 +101,59 @@ export function initEditorInput(editorCanvas, state, onUpdate) {
     return Math.round(v / state.gridSize) * state.gridSize;
   }
 
+  // Find the nearest prism/wall endpoint within threshold distance
+  function findNearestEndpoint(x, y, threshold) {
+    const ld = state.levelData;
+    let bestDist = threshold;
+    let best = null;
+    for (const p of (ld.prisms || [])) {
+      if (p.x == null) continue;
+      const a = p.angle || 0;
+      const hw = (p.w || 40) / 2;
+      const c = Math.cos(a), s = Math.sin(a);
+      const eps = [
+        { x: p.x - c * hw, y: p.y - s * hw },
+        { x: p.x + c * hw, y: p.y + s * hw },
+      ];
+      for (const ep of eps) {
+        const d = Math.hypot(x - ep.x, y - ep.y);
+        if (d < bestDist) { bestDist = d; best = { x: ep.x, y: ep.y, angle: a }; }
+      }
+    }
+    for (const w of (ld.walls || [])) {
+      if (w.x == null) continue;
+      const a = w.angle || 0;
+      const hw = (w.w || 40) / 2;
+      const c = Math.cos(a), s = Math.sin(a);
+      const eps = [
+        { x: w.x - c * hw, y: w.y - s * hw },
+        { x: w.x + c * hw, y: w.y + s * hw },
+      ];
+      for (const ep of eps) {
+        const d = Math.hypot(x - ep.x, y - ep.y);
+        if (d < bestDist) { bestDist = d; best = { x: ep.x, y: ep.y, angle: a }; }
+      }
+    }
+    return best;
+  }
+
   function onMouseMove(e) {
     const { x, y } = canvasCoords(e);
     state.cursorX = x;
     state.cursorY = y;
     state.snapX = snap(x);
     state.snapY = snap(y);
+
+    // Endpoint snapping for prism/wall tool (ghost preview)
+    state.snappedEndpoint = null;
+    if ((state.tool === 'prism' || state.tool === 'wall') && !prismDragging && !wallDragging) {
+      const ep = findNearestEndpoint(x, y, 18);
+      if (ep) {
+        state.snapX = ep.x;
+        state.snapY = ep.y;
+        state.snappedEndpoint = ep;
+      }
+    }
 
     // Prism drag-to-create: compute segment count from distance
     if (prismDragging && state.tool === 'prism') {
@@ -108,6 +168,35 @@ export function initEditorInput(editorCanvas, state, onUpdate) {
       const rawSeg = Math.round(projDist / PRISM_UNIT_W);
       state.prismDragSegments = Math.max(1, Math.min(PRISM_MAX_SEGMENTS, rawSeg + 1));
       onUpdate();
+      return;
+    }
+
+    // Wall drag-to-create: compute width from distance along angle axis
+    if (wallDragging && state.tool === 'wall') {
+      const angle = state.placementAngle || 0;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+      const dx = x - state.wallDragAnchorX;
+      const dy = y - state.wallDragAnchorY;
+      const proj = dx * cos + dy * sin;
+      const projDist = Math.abs(proj);
+      if (projDist > 5) state.wallDragDir = proj >= 0 ? 1 : -1;
+      // Snap width to multiples of 10, min 20, max 300
+      const rawW = Math.round(projDist / 10) * 10;
+      state.wallDragWidth = Math.max(20, Math.min(300, rawW + 20));
+      onUpdate();
+      return;
+    }
+
+    if (stretching && state.selected && state.selected.kind === 'wall') {
+      const w = state.levelData.walls[state.selected.index];
+      if (w) {
+        const dx = x - stretchStartX;
+        const dy = y - dragOffsetY;
+        w.w = Math.max(20, Math.min(200, Math.round(stretchStartW + dx)));
+        w.h = Math.max(6, Math.min(60, Math.round(stretchStartH + dy)));
+        onUpdate();
+      }
       return;
     }
 
@@ -146,6 +235,12 @@ export function initEditorInput(editorCanvas, state, onUpdate) {
         onUpdate();
         return;
       }
+      if (wallDragging) {
+        wallDragging = false;
+        state.wallDragActive = false;
+        onUpdate();
+        return;
+      }
       const { x, y } = canvasCoords(e);
       const hit = hitTest(state.levelData, x, y);
       if (hit && hit.kind !== 'player') {
@@ -168,6 +263,18 @@ export function initEditorInput(editorCanvas, state, onUpdate) {
       if (hit) {
         state.selected = hit;
         pushSnapshot();
+
+        // Shift+drag on wall = stretch
+        if (e.shiftKey && hit.kind === 'wall') {
+          stretching = true;
+          const w = ld.walls[hit.index];
+          stretchStartX = x;
+          stretchStartW = w.w || 40;
+          stretchStartH = w.h || 10;
+          dragOffsetY = y;
+          onUpdate();
+          return;
+        }
 
         // Shift+drag on prism = stretch
         if (e.shiftKey && hit.kind === 'prism') {
@@ -229,8 +336,16 @@ export function initEditorInput(editorCanvas, state, onUpdate) {
       // Start drag-to-create (finalized on mouseup)
       prismDragging = true;
       state.prismDragActive = true;
-      state.prismDragAnchorX = sx;
-      state.prismDragAnchorY = sy;
+      // Snap anchor to nearest prism/wall endpoint if close
+      const ep = findNearestEndpoint(x, y, 18);
+      if (ep) {
+        state.prismDragAnchorX = ep.x;
+        state.prismDragAnchorY = ep.y;
+        state.placementAngle = ep.angle;
+      } else {
+        state.prismDragAnchorX = sx;
+        state.prismDragAnchorY = sy;
+      }
       state.prismDragSegments = 1;
       onUpdate();
       return;
@@ -252,6 +367,24 @@ export function initEditorInput(editorCanvas, state, onUpdate) {
     } else if (state.tool === 'apple') {
       if (!ld.apples) ld.apples = [];
       ld.apples.push({ x: sx, y: sy });
+    } else if (state.tool === 'wall') {
+      // Start drag-to-create (finalized on mouseup)
+      wallDragging = true;
+      state.wallDragActive = true;
+      // Snap anchor to nearest prism/wall endpoint if close
+      const ep = findNearestEndpoint(x, y, 18);
+      if (ep) {
+        state.wallDragAnchorX = ep.x;
+        state.wallDragAnchorY = ep.y;
+        state.placementAngle = ep.angle;
+      } else {
+        state.wallDragAnchorX = sx;
+        state.wallDragAnchorY = sy;
+      }
+      state.wallDragWidth = 40;
+      state.wallDragDir = 1;
+      onUpdate();
+      return;
     }
     onUpdate();
   }
@@ -281,6 +414,26 @@ export function initEditorInput(editorCanvas, state, onUpdate) {
         state.prismDragActive = false;
         onUpdate();
       }
+      if (wallDragging && state.tool === 'wall') {
+        const ld = state.levelData;
+        if (!ld.walls) ld.walls = [];
+        pushSnapshot();
+        const w = state.wallDragWidth;
+        const halfW = w / 2;
+        const dir = state.wallDragDir || 1;
+        const wAngle = state.placementAngle || 0;
+        ld.walls.push({
+          x: state.wallDragAnchorX + Math.cos(wAngle) * dir * halfW,
+          y: state.wallDragAnchorY + Math.sin(wAngle) * dir * halfW,
+          w: w,
+          h: 10,
+          angle: wAngle,
+          type: state.wallSubtype || 'reflect',
+        });
+        wallDragging = false;
+        state.wallDragActive = false;
+        onUpdate();
+      }
       dragging = false;
       stretching = false;
     }
@@ -290,8 +443,8 @@ export function initEditorInput(editorCanvas, state, onUpdate) {
 
   // Mouse wheel: rotate placement preview or selected entity
   function onWheel(e) {
-    // Placement mode: adjust pre-placement angle (prism tool)
-    if (state.tool === 'prism' && !state.selected) {
+    // Placement mode: adjust pre-placement angle (prism/wall tool)
+    if ((state.tool === 'prism' || state.tool === 'wall') && !state.selected) {
       e.preventDefault();
       const step = e.shiftKey ? (Math.PI / 36) : (Math.PI / 12); // 5° or 15°
       state.placementAngle = (state.placementAngle || 0) + (e.deltaY > 0 ? step : -step);
@@ -303,10 +456,11 @@ export function initEditorInput(editorCanvas, state, onUpdate) {
     const sel = state.selected;
     const ld = state.levelData;
 
-    // Rotate selected prisms
-    if (sel.kind === 'prism') {
+    // Rotate selected prisms or walls
+    if (sel.kind === 'prism' || sel.kind === 'wall') {
       e.preventDefault();
-      const p = ld.prisms[sel.index];
+      const arr = sel.kind === 'prism' ? ld.prisms : ld.walls;
+      const p = arr[sel.index];
       if (!p) return;
       pushSnapshot();
       const step = e.shiftKey ? (Math.PI / 36) : (Math.PI / 12); // 5° or 15°

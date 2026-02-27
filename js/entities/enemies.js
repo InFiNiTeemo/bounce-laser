@@ -5,6 +5,10 @@
 import { ctx, drawPixelRect, drawPixelCircle } from '../core/render.js';
 import { W, H, COLORS, ENEMY_COLORS } from '../core/constants.js';
 import { game, player } from '../core/state.js';
+import { getSprite } from '../sprites/spriteLoader.js';
+import { SPRITE_DEFS } from '../sprites/spriteData.js';
+import { playSound } from '../systems/audio.js';
+import { damagePlayer } from '../systems/damage.js';
 
 // Level-based enemy composition: [basic, patrol, tank, sniper]
 function getEnemyCounts(lvl) {
@@ -51,7 +55,7 @@ export function spawnEnemies() {
   for (let i = 0; i < nPatrol; i++) {
     const { ex, ey } = spawnPos();
     const angle = Math.random() * Math.PI * 2;
-    const speed = 0.8 + Math.random() * 0.4;
+    const speed = 50 + Math.random() * 25;
     game.enemies.push({
       type: 'patrol', x: ex, y: ey, size: 12,
       hp: 1, maxHp: 1, canShoot: false, shootTimer: 999,
@@ -112,10 +116,9 @@ export function drawEnemy(e) {
 }
 
 function drawEnemyBasic(e, bob) {
-  drawPixelCircle(e.x, e.y + bob, e.size, COLORS.enemyDark);
-  drawPixelCircle(e.x, e.y + bob, e.size - 3, COLORS.enemy);
-  drawPixelRect(e.x - 5, e.y - 4 + bob, 4, 4, '#880022');
-  drawPixelRect(e.x + 2, e.y - 4 + bob, 4, 4, '#880022');
+  const sprite = getSprite('enemy_basic');
+  const def = SPRITE_DEFS.enemy_basic;
+  ctx.drawImage(sprite, Math.floor(e.x - def.cx), Math.floor(e.y + bob - def.cy), def.w, def.h);
   // HP bar
   if (e.maxHp > 1) {
     const bw = 20, ratio = e.hp / e.maxHp;
@@ -133,33 +136,32 @@ function drawEnemyBasic(e, bob) {
 
 function drawEnemyPatrol(e, bob) {
   const C = ENEMY_COLORS.patrol;
-  drawPixelCircle(e.x, e.y + bob, e.size, C.dark);
-  drawPixelCircle(e.x, e.y + bob, e.size - 3, C.body);
-  drawPixelRect(e.x - 5, e.y - 4 + bob, 4, 4, C.eye);
-  drawPixelRect(e.x + 2, e.y - 4 + bob, 4, 4, C.eye);
-  // Direction triangle indicator
-  const dir = e.moveVx >= 0 ? 1 : -1;
-  const tx = e.x + dir * (e.size + 5);
-  const ty = e.y + bob;
+  const sprite = getSprite('enemy_patrol');
+  const def = SPRITE_DEFS.enemy_patrol;
+  ctx.drawImage(sprite, Math.floor(e.x - def.cx), Math.floor(e.y + bob - def.cy), def.w, def.h);
+  // Direction triangle indicator — points toward movement direction
+  const angle = Math.atan2(e.moveVy, e.moveVx);
+  const tipDist = e.size + 8;
+  const tipX = e.x + Math.cos(angle) * tipDist;
+  const tipY = e.y + bob + Math.sin(angle) * tipDist;
+  const backX = e.x + Math.cos(angle) * (tipDist - 7);
+  const backY = e.y + bob + Math.sin(angle) * (tipDist - 7);
+  const perpX = Math.cos(angle + Math.PI / 2) * 4;
+  const perpY = Math.sin(angle + Math.PI / 2) * 4;
   ctx.fillStyle = C.body;
   ctx.beginPath();
-  ctx.moveTo(tx + dir * 5, ty);
-  ctx.lineTo(tx - dir * 2, ty - 4);
-  ctx.lineTo(tx - dir * 2, ty + 4);
+  ctx.moveTo(tipX, tipY);
+  ctx.lineTo(backX + perpX, backY + perpY);
+  ctx.lineTo(backX - perpX, backY - perpY);
   ctx.closePath();
   ctx.fill();
 }
 
 function drawEnemyTank(e, bob) {
   const C = ENEMY_COLORS.tank;
-  drawPixelCircle(e.x, e.y + bob, e.size, C.dark);
-  drawPixelCircle(e.x, e.y + bob, e.size - 3, C.body);
-  // Armor bands (2 horizontal lines)
-  drawPixelRect(e.x - e.size + 4, e.y - 3 + bob, (e.size - 4) * 2, 2, C.dark);
-  drawPixelRect(e.x - e.size + 4, e.y + 3 + bob, (e.size - 4) * 2, 2, C.dark);
-  // Eyes
-  drawPixelRect(e.x - 6, e.y - 5 + bob, 4, 4, C.eye);
-  drawPixelRect(e.x + 3, e.y - 5 + bob, 4, 4, C.eye);
+  const sprite = getSprite('enemy_tank');
+  const def = SPRITE_DEFS.enemy_tank;
+  ctx.drawImage(sprite, Math.floor(e.x - def.cx), Math.floor(e.y + bob - def.cy), def.w, def.h);
   // HP bar
   const bw = 24, ratio = e.hp / e.maxHp;
   drawPixelRect(e.x - bw / 2, e.y - e.size - 8 + bob, bw, 3, '#220033');
@@ -194,10 +196,9 @@ function drawEnemySniper(e, bob) {
   // Body — flicker when charging
   const show = !e.charging || Math.sin(Date.now() / 60) > -0.3;
   if (show) {
-    drawPixelCircle(e.x, e.y + bob, e.size, C.dark);
-    drawPixelCircle(e.x, e.y + bob, e.size - 3, C.body);
-    drawPixelRect(e.x - 4, e.y - 3 + bob, 3, 3, C.eye);
-    drawPixelRect(e.x + 2, e.y - 3 + bob, 3, 3, C.eye);
+    const sprite = getSprite('enemy_sniper');
+    const def = SPRITE_DEFS.enemy_sniper;
+    ctx.drawImage(sprite, Math.floor(e.x - def.cx), Math.floor(e.y + bob - def.cy), def.w, def.h);
   }
   // Scope / crosshair decoration on top
   if (show) {
@@ -222,37 +223,13 @@ function drawEnemyHealer(e, bob) {
     ctx.stroke();
     ctx.globalAlpha = 1;
   }
-  // Diamond body
+  // Body sprite
+  const sprite = getSprite('enemy_healer');
+  const def = SPRITE_DEFS.enemy_healer;
+  ctx.drawImage(sprite, Math.floor(e.x - def.cx), Math.floor(e.y + bob - def.cy), def.w, def.h);
+  // HP bar
   const s = e.size;
   const cy = e.y + bob;
-  ctx.save();
-  ctx.shadowColor = C.body;
-  ctx.shadowBlur = 6;
-  ctx.fillStyle = C.dark;
-  ctx.beginPath();
-  ctx.moveTo(e.x, cy - s);
-  ctx.lineTo(e.x + s, cy);
-  ctx.lineTo(e.x, cy + s);
-  ctx.lineTo(e.x - s, cy);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = C.body;
-  ctx.beginPath();
-  ctx.moveTo(e.x, cy - s + 3);
-  ctx.lineTo(e.x + s - 3, cy);
-  ctx.lineTo(e.x, cy + s - 3);
-  ctx.lineTo(e.x - s + 3, cy);
-  ctx.closePath();
-  ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.restore();
-  // White cross (medical symbol)
-  drawPixelRect(e.x - 1, cy - 5, 2, 10, '#ffffff');
-  drawPixelRect(e.x - 5, cy - 1, 10, 2, '#ffffff');
-  // Eyes
-  drawPixelRect(e.x - 5, cy - 4, 3, 3, C.eye);
-  drawPixelRect(e.x + 3, cy - 4, 3, 3, C.eye);
-  // HP bar
   if (e.maxHp > 1) {
     const bw = 20, ratio = e.hp / e.maxHp;
     drawPixelRect(e.x - bw / 2, cy - s - 8, bw, 3, '#003322');
@@ -265,41 +242,10 @@ function drawEnemyGhost(e, bob) {
   ctx.globalAlpha = e.fadeAlpha;
   const s = e.size;
   const cy = e.y + bob;
-  ctx.save();
-  ctx.shadowColor = C.body;
-  ctx.shadowBlur = 8 * e.fadeAlpha;
-  // Ghost body: dome top + wavy bottom
-  ctx.fillStyle = C.dark;
-  ctx.beginPath();
-  ctx.arc(e.x, cy - 2, s, Math.PI, 0); // dome top
-  // Wavy bottom tail
-  const wave = Math.sin(e.bobPhase * 2) * 2;
-  ctx.lineTo(e.x + s, cy + s - 2);
-  ctx.lineTo(e.x + s * 0.6, cy + s - 5 + wave);
-  ctx.lineTo(e.x + s * 0.2, cy + s - 2);
-  ctx.lineTo(e.x - s * 0.2, cy + s - 5 - wave);
-  ctx.lineTo(e.x - s * 0.6, cy + s - 2);
-  ctx.lineTo(e.x - s, cy + s - 2);
-  ctx.closePath();
-  ctx.fill();
-  // Inner lighter body
-  ctx.fillStyle = C.body;
-  ctx.beginPath();
-  ctx.arc(e.x, cy - 2, s - 3, Math.PI, 0);
-  ctx.lineTo(e.x + s - 3, cy + s - 5);
-  ctx.lineTo(e.x + s * 0.5, cy + s - 7 + wave);
-  ctx.lineTo(e.x, cy + s - 5);
-  ctx.lineTo(e.x - s * 0.5, cy + s - 7 - wave);
-  ctx.lineTo(e.x - s + 3, cy + s - 5);
-  ctx.closePath();
-  ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.restore();
-  // Eyes — larger, glowing
-  drawPixelRect(e.x - 5, cy - 4, 4, 4, C.eye);
-  drawPixelRect(e.x + 2, cy - 4, 4, 4, C.eye);
-  drawPixelRect(e.x - 4, cy - 3, 2, 2, '#88ffee');
-  drawPixelRect(e.x + 3, cy - 3, 2, 2, '#88ffee');
+  // Body sprite (with fade alpha)
+  const sprite = getSprite('enemy_ghost');
+  const def = SPRITE_DEFS.enemy_ghost;
+  ctx.drawImage(sprite, Math.floor(e.x - def.cx), Math.floor(e.y + bob - def.cy), def.w, def.h);
   // Gun barrel
   if (e.canShoot) {
     const a = Math.atan2(player.y - e.y, player.x - e.x);
@@ -319,8 +265,8 @@ function drawEnemyGhost(e, bob) {
 export function updateEnemyAI(e, dt) {
   // Patrol movement — bounce off edges and player
   if (e.type === 'patrol') {
-    e.x += e.moveVx;
-    e.y += e.moveVy;
+    e.x += e.moveVx * dt;
+    e.y += e.moveVy * dt;
     if (e.x < 40 || e.x > W - 40) e.moveVx *= -1;
     if (e.y < 40 || e.y > H - 40) e.moveVy *= -1;
     e.x = Math.max(20, Math.min(W - 20, e.x));
@@ -334,7 +280,7 @@ export function updateEnemyAI(e, dt) {
       e.moveVx = Math.cos(a) * spd;
       e.moveVy = Math.sin(a) * spd;
     }
-    // Bounce off player
+    // Bounce off player + deal contact damage (ignores shield)
     const dist = Math.hypot(e.x - player.x, e.y - player.y);
     if (dist < e.size + player.size) {
       const nx = (e.x - player.x) / (dist || 1);
@@ -344,6 +290,10 @@ export function updateEnemyAI(e, dt) {
       const spd = Math.hypot(e.moveVx, e.moveVy);
       e.moveVx = nx * spd;
       e.moveVy = ny * spd;
+      // Contact damage: 1 HP, bypasses shield, respects invincibility
+      if (player.invincibleTimer <= 0) {
+        damagePlayer('\u88AB\u54E8\u5175\u649E\u6B7B\u4E86!', 1);
+      }
     }
   }
 
@@ -376,6 +326,7 @@ export function updateEnemyAI(e, dt) {
           vx: Math.cos(a) * 6, vy: Math.sin(a) * 6,
           life: 200, lastPortal: null, bulletType: 'sniper', hp: 2, damage: 2
         });
+        playSound('enemy_shoot',{pitch:1.3});
         e.shootTimer = 5 + Math.random() * 3;
       }
     } else {
@@ -397,6 +348,7 @@ export function updateEnemyAI(e, dt) {
         vx: Math.cos(a) * 2, vy: Math.sin(a) * 2,
         life: 250, lastPortal: null, bulletType: 'tank'
       });
+      playSound('enemy_shoot',{pitch:0.7});
     }
   }
   // Ghost — phase in/out
@@ -433,6 +385,7 @@ export function updateEnemyAI(e, dt) {
             vx: Math.cos(a) * 3.5, vy: Math.sin(a) * 3.5,
             life: 200, lastPortal: null, bulletType: 'ghost'
           });
+          playSound('enemy_shoot',{pitch:0.9});
         }
       }
     } else {
@@ -459,6 +412,7 @@ export function updateEnemyAI(e, dt) {
         vx: Math.cos(a) * 3, vy: Math.sin(a) * 3,
         life: 200, lastPortal: null, bulletType: 'basic'
       });
+      playSound('enemy_shoot');
     }
   }
 }

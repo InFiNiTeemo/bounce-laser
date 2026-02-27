@@ -50,6 +50,21 @@ export function initEditorUI(state, callbacks) {
         });
         subtypePanel.appendChild(btn);
       });
+    } else if (state.tool === 'wall') {
+      const types = [
+        { value: 'reflect', label: '\u53CD\u5C04' },
+        { value: 'solid', label: '\u5B9E\u4F53' },
+      ];
+      types.forEach(t => {
+        const btn = document.createElement('button');
+        btn.className = 'editor-subtype' + ((state.wallSubtype || 'reflect') === t.value ? ' active' : '');
+        btn.textContent = t.label;
+        btn.addEventListener('click', () => {
+          state.wallSubtype = t.value;
+          updateSubtypePanel();
+        });
+        subtypePanel.appendChild(btn);
+      });
     } else if (state.tool === 'prism') {
       const types = [
         { value: 'static', label: '\u9759\u6B62' },
@@ -168,6 +183,24 @@ export function initEditorUI(state, callbacks) {
       html = `<div class="prop-row"><span>\u7206\u70B8\u6876</span></div>`;
     } else if (sel.kind === 'apple') {
       html = `<div class="prop-row"><span>\u82F9\u679C</span></div>`;
+    } else if (sel.kind === 'wall') {
+      const w = ld.walls[sel.index];
+      if (!w) { panel.innerHTML = ''; return; }
+      const wtype = w.type || 'reflect';
+      const angleDeg = Math.round((w.angle || 0) * 180 / Math.PI);
+      const typeLabel = wtype === 'solid' ? '\u5B9E\u4F53\u5899' : '\u53CD\u5C04\u5899';
+      html = `<div class="prop-row"><span>${typeLabel}</span></div>
+        <div class="prop-row">
+          <label>\u7C7B\u578B: <select class="prop-input" data-field="wtype">
+            <option value="reflect" ${wtype==='reflect'?'selected':''}>\u53CD\u5C04</option>
+            <option value="solid" ${wtype==='solid'?'selected':''}>\u5B9E\u4F53</option>
+          </select></label>
+          <label>\u89D2\u5EA6: <input type="number" class="prop-input" data-field="wangle" value="${angleDeg}" min="0" max="360" step="5"></label>
+        </div>
+        <div class="prop-row">
+          <label>\u5BBD: <input type="number" class="prop-input" data-field="ww" value="${w.w||40}" min="20" max="200" step="2"></label>
+          <label>\u9AD8: <input type="number" class="prop-input" data-field="wh" value="${w.h||10}" min="6" max="60" step="2"></label>
+        </div>`;
     } else if (sel.kind === 'portal') {
       const p = ld.portals[sel.index];
       if (!p) { panel.innerHTML = ''; return; }
@@ -216,6 +249,13 @@ export function initEditorUI(state, callbacks) {
       if (field === 'pw') p.w = Math.max(20, Math.min(200, parseInt(input.value) || 40));
       if (field === 'ph') p.h = Math.max(6, Math.min(60, parseInt(input.value) || 12));
       if (field === 'php') p.hp = parseInt(input.value) || 3;
+    } else if (sel.kind === 'wall') {
+      const w = ld.walls[sel.index];
+      if (!w) return;
+      if (field === 'wtype') { w.type = input.value; updateProperties(); }
+      if (field === 'wangle') w.angle = (parseInt(input.value) || 0) * Math.PI / 180;
+      if (field === 'ww') w.w = Math.max(20, Math.min(200, parseInt(input.value) || 40));
+      if (field === 'wh') w.h = Math.max(6, Math.min(60, parseInt(input.value) || 10));
     }
   }
 

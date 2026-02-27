@@ -5,6 +5,7 @@ import { ctx, drawPixelCircle } from '../core/render.js';
 import { W, H, PORTAL_COLORS, PORTAL_RADIUS, PORTAL_MIN_LEVEL } from '../core/constants.js';
 import { game, player } from '../core/state.js';
 import { spawnParticles } from '../systems/particles.js';
+import { playSound } from '../systems/audio.js';
 
 export function spawnPortals() {
   game.portals = [];
@@ -101,9 +102,10 @@ export function drawPortal(portal) {
 export function checkBulletPortalCollision(b) {
   let ported = false;
   for (const portal of game.portals) {
-    const dA = Math.hypot(b.x - portal.ax, b.y - portal.ay);
-    const dB = Math.hypot(b.x - portal.bx, b.y - portal.by);
-    if (dA < portal.radius && b.lastPortal !== portal) {
+    const dxA = b.x - portal.ax, dyA = b.y - portal.ay;
+    const dxB = b.x - portal.bx, dyB = b.y - portal.by;
+    const r2 = portal.radius * portal.radius;
+    if (dxA * dxA + dyA * dyA < r2 && b.lastPortal !== portal) {
       b.x = portal.bx + (b.x - portal.ax);
       b.y = portal.by + (b.y - portal.ay);
       b.lastPortal = portal;
@@ -111,10 +113,11 @@ export function checkBulletPortalCollision(b) {
       if (b.trail) b.trail = [];
       spawnParticles(portal.ax, portal.ay, PORTAL_COLORS.blue, 6);
       spawnParticles(portal.bx, portal.by, PORTAL_COLORS.orange, 6);
+      playSound('portal_enter');
       ported = true;
       break;
     }
-    if (dB < portal.radius && b.lastPortal !== portal) {
+    if (dxB * dxB + dyB * dyB < r2 && b.lastPortal !== portal) {
       b.x = portal.ax + (b.x - portal.bx);
       b.y = portal.ay + (b.y - portal.by);
       b.lastPortal = portal;
@@ -122,16 +125,17 @@ export function checkBulletPortalCollision(b) {
       if (b.trail) b.trail = [];
       spawnParticles(portal.bx, portal.by, PORTAL_COLORS.orange, 6);
       spawnParticles(portal.ax, portal.ay, PORTAL_COLORS.blue, 6);
+      playSound('portal_enter');
       ported = true;
       break;
     }
   }
   if (b.lastPortal && !ported) {
     const lp = b.lastPortal;
-    if (
-      Math.hypot(b.x - lp.ax, b.y - lp.ay) > lp.radius + 4 &&
-      Math.hypot(b.x - lp.bx, b.y - lp.by) > lp.radius + 4
-    ) {
+    const clearR = lp.radius + 4, clearR2 = clearR * clearR;
+    const clA = b.x - lp.ax, clB = b.y - lp.ay;
+    const clC = b.x - lp.bx, clD = b.y - lp.by;
+    if (clA * clA + clB * clB > clearR2 && clC * clC + clD * clD > clearR2) {
       b.lastPortal = null;
     }
   }

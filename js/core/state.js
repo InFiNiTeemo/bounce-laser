@@ -71,6 +71,15 @@ export const game = {
   heavyBullets: false,
   secondLifeRing: null,
   secondLifeFlash: 0,
+  // Combo system
+  combo: 0,
+  comboTimer: 0,
+  comboMultiplier: 1.0,
+  comboBestThisLevel: 0,
+  comboTotalThisLevel: 0,
+  // Boss system
+  boss: null,
+  bossDeathSequence: false,
 };
 
 export const player = {
@@ -161,9 +170,18 @@ export function initGameState(lvl, score, shots, hp) {
   game.apples = [];
   game.gravityWells = [];
   game.amplifiers = [];
+  game.walls = [];
   game.piercingCount = 0;
   game.secondLifeUsed = false;
   game.chainLightnings = [];
+  game.boss = null;
+  game.bossDeathSequence = false;
+  // Combo reset
+  game.combo = 0;
+  game.comboTimer = 0;
+  game.comboMultiplier = 1.0;
+  game.comboBestThisLevel = 0;
+  game.comboTotalThisLevel = 0;
   player.invincibleTimer = 1;
 }
 
@@ -206,11 +224,14 @@ export function resetForNextLevel() {
   game.apples = [];
   game.gravityWells = [];
   game.amplifiers = [];
+  game.walls = [];
   game.shots += 1;
   game.playerAlive = true;
   game.shieldActive = false;
   game.shieldEnergy = game.shieldMaxEnergy;
   game.shieldCooldown = false;
   game.secondLifeUsed = false;
+  game.boss = null;
+  game.bossDeathSequence = false;
   player.invincibleTimer = 1;
 }
